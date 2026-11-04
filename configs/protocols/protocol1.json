@@ -1,0 +1,10 @@
+{
+  "name": "protocol1",
+  "split_before_windowing": true,
+  "type": "leave_one_subject_out",
+  "test_subject_id": null,
+  "validation_subject_id": null,
+  "validation": {
+    "strategy": "next_subject"
+  }
+}

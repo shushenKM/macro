@@ -1,0 +1,16 @@
+{
+  "name": "protocol2",
+  "split_before_windowing": true,
+  "type": "held_out_repetitions",
+  "train_repetitions": [
+    1,
+    2
+  ],
+  "test_repetitions": [
+    3
+  ],
+  "validation": {
+    "strategy": "grouped_trials",
+    "fraction": 0.2
+  }
+}

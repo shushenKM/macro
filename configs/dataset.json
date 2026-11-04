@@ -1,0 +1,23 @@
+{
+  "dataset_root": "../dataset",
+  "read_only": true,
+  "annotation_locale": "EN",
+  "annotation_patterns": {
+    "imu_semg": "imu_semg_gesture_segments*_{locale}.csv",
+    "rgbd": "rgb_depth_gesture_segments*_{locale}.csv"
+  },
+  "macro_repetition_grouping": "prefix",
+  "folders": {
+    "annotations": "annotation",
+    "imu": "imu",
+    "semg": "semg",
+    "rgbd": "rgbd"
+  },
+  "session_mapping": {
+    "step1": "session1",
+    "step2": "session2",
+    "step3": "session3",
+    "step4": "session4"
+  },
+  "video_recording_overrides": {}
+}

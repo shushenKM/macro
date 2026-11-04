@@ -1,0 +1,8 @@
+# One Python 3.11 environment for macro, imu_semg and rgb_d entry points.
+# Install the desired CUDA/CPU torch build first; see README.md.
+numpy>=1.26,<3
+scipy>=1.11,<2
+torch>=2.7,<3
+h5py>=3.10,<4
+opencv-python-headless>=4.10,<5
+matplotlib>=3.7,<4

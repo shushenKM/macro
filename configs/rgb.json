@@ -1,0 +1,55 @@
+{
+  "modality": "rgb",
+  "dataset_config": "configs/dataset.json",
+  "model": "tsm",
+  "views": [
+    "above"
+  ],
+  "subject_ids": null,
+  "session_ids": [
+    "step1",
+    "step2",
+    "step3",
+    "step4"
+  ],
+  "expected_class_count": null,
+  "expected_gesture_labels": null,
+  "input": {
+    "num_frames": 8,
+    "image_size": 128
+  },
+  "screw_sampling": {
+    "duration_s": 1.0,
+    "segments_per_trial": 5,
+    "short_parent_policy": "shrink"
+  },
+  "data_quality": {
+    "allow_within_subject_test_overlap": true,
+    "allow_cross_subject_overlap": true
+  },
+  "model_parameters": {
+    "pretrained_backbone": null
+  },
+  "training": {
+    "epochs": 50,
+    "batch_size": 16,
+    "learning_rate": 0.0001,
+    "weight_decay": 0.001,
+    "seed": 42,
+    "device": "auto",
+    "num_workers": 0,
+    "cpu_threads": 4,
+    "deterministic": true,
+    "amp": true,
+    "scheduler": {
+      "type": "reduce_on_plateau",
+      "factor": 0.5,
+      "patience": 3,
+      "min_lr": 1e-06
+    },
+    "early_stopping_patience": 10,
+    "gradient_clip_norm": 5.0,
+    "save_windows": false
+  },
+  "output_root": "runs/rgb"
+}

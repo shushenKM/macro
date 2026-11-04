@@ -1,0 +1,20 @@
+{
+  "name": "steps123_to_step4",
+  "train_sessions": [
+    "step1",
+    "step2",
+    "step3"
+  ],
+  "test_sessions": [
+    "step4"
+  ],
+  "target_gesture_labels": [
+    "approach",
+    "grasp",
+    "lift",
+    "move",
+    "screw",
+    "release",
+    "insert"
+  ]
+}
