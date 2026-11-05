@@ -206,7 +206,7 @@
     "gradient_clip_norm": 5.0,
     "save_windows": false,
     "num_workers": 0,
-    "amp": true
+    "amp": false
   },
   "output_root": "runs/semg"
 }

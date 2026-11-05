@@ -162,7 +162,7 @@ def _settings(config):
         raise ValueError("training must be a configuration object")
     s = dict(epochs=30, batch_size=4, learning_rate=0.0001, weight_decay=0.001,
              seed=42, device="auto", cpu_threads=1, deterministic=True, num_workers=0,
-             amp=True, early_stopping_patience=10, gradient_clip_norm=5.0)
+             amp=config.get("modality") != "semg", early_stopping_patience=10, gradient_clip_norm=5.0)
     s.update(raw)
     for name in ("epochs", "batch_size", "cpu_threads"):
         if type(s[name]) is not int or s[name] < 1:
@@ -234,7 +234,7 @@ def _check_logits(logits, targets, classes):
     if not isinstance(logits, torch.Tensor) or logits.shape != (len(targets), classes):
         raise ValueError("The model must return logits shaped [batch, number_of_classes]")
     if not torch.isfinite(logits).all():
-        raise FloatingPointError("The model produced non-finite logits")
+        raise FloatingPointError("The model produced non-finite logits (NaN or Inf); if CUDA AMP is enabled, retry with --no-amp")
 
 
 def evaluate(model, loader, label_mapping, device, amp=False):
@@ -339,9 +339,9 @@ def train_fold(fold, label_mapping, config, output_dir, dataset_root):
     save_prepared_fold(fold, output, settings.get("save_windows", False))
     started = time.monotonic()
     history, best_score, best_loss, best_epoch, stale = [], -1.0, float("inf"), 0, 0
-    print("{}: {} on {} | {} | inputs {} | train/validation/test {}/{}/{}".format(
+    print("{}: {} on {} | {} | inputs {} | train/validation/test {}/{}/{} | precision={}".format(
         fold["name"], config.get("model"), device, config["modality"], config.get("views", config.get("sensor_ids", config.get("grid_ids"))),
-        len(samples["train"]), len(samples["validation"]), len(samples["test"])), flush=True)
+        len(samples["train"]), len(samples["validation"]), len(samples["test"]), "AMP FP16" if amp else "FP32"), flush=True)
     with _artifact(output, "history.csv").open("w", encoding="utf-8", newline="") as f:
         fields = ["epoch", "learning_rate", "next_learning_rate", "train_loss", "train_accuracy",
                   "validation_loss", "validation_accuracy", "validation_macro_f1", "epoch_seconds"]

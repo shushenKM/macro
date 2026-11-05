@@ -140,7 +140,7 @@ python train_depth.py --experiment step4_to_step4 --protocol protocol1 --model t
 ```
 
 Common overrides: `--subjects`, `--test-subject`, `--validation-subject`,
-`--epochs`, `--batch-size`, `--device`, `--workers`, `--run-name`.
+`--epochs`, `--batch-size`, `--device`, `--workers`, `--run-name`, `--amp` / `--no-amp`.
 Signals additionally support `--points`, IMU `--sensors`, sEMG `--grids`.
 Video supports `--model tsm|mvtn`, `--views`, `--frames`, `--image-size`.
 Configurations can be passed as full JSON paths or experiment/protocol short names.
@@ -153,6 +153,14 @@ clipping, ReduceLROnPlateau on validation loss, and early stopping. Best validat
 macro F1 selects the checkpoint, with validation loss as tiebreaker. Test is
 computed once after that checkpoint is restored. Signal normalization is fitted
 on the training partition only. A separate model/scaler is trained for each fold.
+
+sEMG defaults to FP32, including on CUDA. A step4 validation segment produced
+finite normalized values around 289,240 that overflowed the first convolution
+under FP16 AMP. FP32 handles that range without clipping or excluding the segment.
+Use `--no-amp` to select FP32 explicitly; this still uses the GPU with `--device cuda`.
+Other modalities retain their existing AMP defaults. The terminal and environment
+report record the effective precision. Extreme signal values still merit source
+review; changing precision does not repair the recording.
 
 Runs have descriptive names containing modality, model, batch, maximum epochs,
 experiment, protocol, sensors/grids/views, input size, learning rate and seed.

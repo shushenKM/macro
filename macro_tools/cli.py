@@ -29,7 +29,7 @@ def train(modality, *, config_path=None, experiment_path="step4_to_step4", proto
     dataset = read_config(config.get("dataset_config", "configs/dataset.json"))
     if dataset.get("read_only") is not True:
         raise ValueError("dataset.read_only must remain true")
-    for argument, key in (("epochs", "epochs"), ("batch_size", "batch_size"), ("device", "device"), ("workers", "num_workers")):
+    for argument, key in (("epochs", "epochs"), ("batch_size", "batch_size"), ("device", "device"), ("workers", "num_workers"), ("amp", "amp")):
         if overrides.get(argument) is not None:
             config.setdefault("training", {})[key] = overrides[argument]
     for argument, key in (("points", "num_points"), ("frames", "num_frames"), ("image_size", "image_size")):
@@ -117,6 +117,8 @@ def main(modality, argv=None):
     parser.add_argument("--epochs", type=int)
     parser.add_argument("--batch-size", type=int)
     parser.add_argument("--device")
+    parser.add_argument("--amp", action=argparse.BooleanOptionalAction, default=None,
+                        help="Enable CUDA FP16 mixed precision; --no-amp uses FP32 on the selected device (sEMG default)")
     parser.add_argument("--workers", type=int)
     parser.add_argument("--run-name")
     if modality == "imu":
@@ -134,6 +136,6 @@ def main(modality, argv=None):
         run = train(modality, **vars(parser.parse_args(argv)))
         print("Saved run: " + str(run.relative_to(PROJECT_ROOT)), flush=True)
         return 0
-    except (ImportError, OSError, ValueError, RuntimeError) as error:
+    except (ImportError, OSError, ValueError, RuntimeError, FloatingPointError) as error:
         print("Macro {} pipeline stopped: {}".format(modality, error), file=sys.stderr)
         return 2
