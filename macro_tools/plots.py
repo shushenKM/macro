@@ -2,8 +2,8 @@
 
 Automatically called after checkpoint selection and final test evaluation.
 Reads only history.csv/result.json in a completed fold; never evaluates a model.
-Writes plots/*.png (screen/report use), plots/*.svg (vector export), report.html,
-and plot_status.json. Multi-fold run reports compare scores without averaging
+Writes plots/*.png (screen/report use), plots/*.svg (vector export), and report.html.
+Plot failures alone create plot_error.txt. Multi-fold reports compare scores without averaging
 learning curves of different lengths. Test scores are final-checkpoint results,
 not per-epoch curves; the selected epoch is marked on training curves.
 
@@ -43,10 +43,6 @@ def _target(folder, name):
     if target.resolve().parent != folder.resolve():
         raise ValueError("Plot/report files must not redirect outside their output folder")
     return target
-
-
-def _write_json(folder, name, value):
-    _target(folder, name).write_text(json.dumps(value, indent=2, allow_nan=False) + "\n", encoding="utf-8")
 
 
 def _read(folder, name):
@@ -255,8 +251,6 @@ def generate_fold_report(output_dir):
         metrics["accuracy"], metrics["macro_f1"], metrics["weighted_f1"], metrics["sample_count"],
         result.get("selected_checkpoint", "unknown"), selected, result.get("epochs_completed", len(rows)))
     _html_report(output, "Training report — " + result.get("name", output.name), intro, figures)
-    _write_json(output, "plot_status.json", {"status": "complete", "report": "report.html",
-                                            "plots": [stem for stem, _ in figures]})
     return output / "report.html"
 
 
@@ -292,11 +286,11 @@ def generate_run_report(run_dir, results=None):
         _save(fig, folder, "fold_comparison")
         plots = [("fold_comparison", "Final test results across folds")]
     intro = "{} completed fold(s). Open a fold below for learning curves and test diagnostics.\nFold comparisons use unweighted mean and population standard deviation; they are not pooled test scores.".format(len(results))
+    from macro_tools.metrics import format_fold_summary
+    intro += "\n" + format_fold_summary(results)
     if len(links) < len(results):
-        intro += "\nSome fold reports are unavailable; see plot_status.json in those folders."
+        intro += "\nSome fold reports are unavailable; see terminal output or plot_error.txt in those folders."
     _html_report(run, "Experiment report — " + run.name, intro, plots, links)
-    _write_json(run, "plot_status.json", {"status": "complete" if len(links) == len(results) else "partial",
-                                         "report": "report.html", "fold_reports": len(links)})
     return run / "report.html"
 
 
@@ -309,7 +303,7 @@ def save_training_report(output_dir, *, results=None):
         return report
     except Exception as error:
         try:
-            _write_json(output, "plot_status.json", {"status": "failed", "error": str(error)})
+            _target(output, "plot_error.txt").write_text(str(error) + "\n", encoding="utf-8")
         except OSError:
             pass
         print("Plot generation failed: {}. Training results are saved. Retry with python -m macro_tools.plots --run \"{}\"".format(

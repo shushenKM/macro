@@ -85,11 +85,10 @@ class MacroTrainingTests(unittest.TestCase):
 
     def test_artifacts_and_terminal_report(self):
         result, terminal = self.run_training()
-        for name in ("best.pt", "last.pt", "history.csv", "test_metrics.json", "confusion_matrix.csv",
-                     "predictions.csv", "environment.json", "model.json", "result.json", "test_samples.json",
-                     "train_samples.json", "validation_samples.json", "protocol.json", "split_summary.json"):
+        for name in ("best.pt", "last.pt", "history.csv", "confusion_matrix.csv",
+                     "predictions.csv", "result.json"):
             self.assertTrue((self.output / name).is_file(), name)
-        self.assertEqual(json.loads((self.output / "plot_status.json").read_text())["status"], "complete")
+        self.assertEqual({p.name for p in self.output.glob("*.json")}, {"result.json"})
         self.assertTrue((self.output / "report.html").is_file())
         self.assertIn("Final test results: invented", terminal)
         self.assertIn("Confusion matrix", terminal)
@@ -107,6 +106,7 @@ class MacroTrainingTests(unittest.TestCase):
         for modality in ("imu", "semg", "depth"):
             config = dict(self.config, modality=modality)
             fold = make_fold()
+            fold["normalization"] = {"mean": [0.2], "std": [1.5], "fit_partition": "train"}
             for part, samples in list(fold["splits"].items()):
                 y = np.asarray([sample["label"] for sample in samples], dtype=np.int64)
                 x = np.repeat((y.astype(np.float32) + .2)[:, None, None, None], 2, axis=3)
@@ -122,8 +122,12 @@ class MacroTrainingTests(unittest.TestCase):
                      patch("macro_tools.plots.save_training_report"), contextlib.redirect_stdout(io.StringIO()):
                     result = training.train_fold(fold, self.mapping, config, Path(temporary) / "fold", "unused")
                 self.assertEqual(result["test_metrics"]["sample_count"], 2)
-                saved = json.loads((Path(temporary) / "fold/test_samples.json").read_text())
-                self.assertEqual([item["label"] for item in saved], [0, 1])
+                with (Path(temporary) / "fold/predictions.csv").open(newline="", encoding="utf-8") as stream:
+                    saved = list(csv.DictReader(stream))
+                self.assertEqual([int(item["target"]) for item in saved], [0, 1])
+                payload = torch.load(Path(temporary) / "fold/best.pt", weights_only=True)
+                self.assertEqual(payload["normalization"], fold["normalization"])
+                self.assertEqual(payload["label_mapping"], self.mapping)
 
     def test_selection_uses_validation_and_test_is_only_evaluated_once(self):
         original = training.evaluate
@@ -161,7 +165,7 @@ class MacroTrainingTests(unittest.TestCase):
         self.assertEqual(result["selected_checkpoint"], "last.pt")
         self.assertEqual(result["selected_epoch"], 2)
         self.assertEqual(result["selection"], "last_epoch_no_validation")
-        info = json.loads((self.output / "model.json").read_text())
+        info = result["training_details"]["model"]
         self.assertFalse(info["scheduler"]["active"])
         self.assertFalse((self.output / "best.pt").exists())
 

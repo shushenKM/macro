@@ -4,20 +4,28 @@ The prediction target remains a micro-gesture label. Every test record is from
 step4. The three experiment names control training sessions independently of the
 participant/repetition protocol. All assignments happen before windowing.
 
-Protocol1 excludes its test and validation participants from every training
-session. Protocol2 uses macro repetition prefixes (default train 1-2, test 3)
-and reserves complete subject/whole-assembly groups for validation.
+Protocol1 supports configurable participant counts: leave-one-subject-out folds
+or one fixed test participant group. It excludes test, validation and unused
+participants from every training session. Protocol2 can hold out named macro repetitions or shuffle complete
+assemblies into configurable percentage partitions, independent of repetition ID.
 Experiment 2 adds isolated-context data to experiment 1's training partition;
 experiment 3 uses only isolated-context training/validation, retaining the same
 step4 test population. By default, class vocabulary is the observed step4
 vocabulary; source-only labels are explicitly listed as exclusions, never renamed.
 Overlapping annotated time intervals are recorded as warnings under the user's
 accepted policy. Reused record IDs and trial groups across partitions are errors.
+
+steps123_train_percent retains a seeded percentage of eligible source training
+trials AFTER validation/test assignment. Sampling keeps trials intact and is
+stratified by participant, session and gesture composition. Positive percentages
+retain at least one trial per stratum; rounding means actual counts can differ
+from the requested percentage. Step4, validation and test records are unchanged.
 """
 from collections import Counter, defaultdict
 from copy import deepcopy
 import math
 import random
+from macro_tools.subject_splits import SUBJECT_PROTOCOL_TYPES, participant_partitions
 
 PARTS = ("train", "validation", "test")
 EXPERIMENTS = {
@@ -38,6 +46,120 @@ def _ids(values, name):
     if not isinstance(values, list) or not values or any(type(value) is not int or value < 1 for value in values) or len(values) != len(set(values)):
         raise ValueError(name + " must contain unique positive integers")
     return set(values)
+
+
+def validate_steps123_percent(experiment):
+    """Validate the percentage before reading recordings or creating a run."""
+    percent = experiment.get("steps123_train_percent", 100)
+    if isinstance(percent, bool) or not isinstance(percent, (int, float)) or not math.isfinite(percent) or not 0 <= percent <= 100:
+        raise ValueError("steps123_train_percent must be a finite percentage between 0 and 100")
+    if experiment.get("name") == "steps123_to_step4" and percent == 0:
+        raise ValueError("steps123_to_step4 requires steps123_train_percent greater than 0; otherwise training is empty")
+    if experiment.get("name") == "step4_to_step4" and percent != 100:
+        raise ValueError("steps123_train_percent applies only to steps1234_to_step4 and steps123_to_step4")
+    return percent
+
+
+def _sample_source_training(assigned, percent, seed):
+    """Select whole source trials without changing either held-out partition."""
+    source = [r for r in assigned["train"] if r["session_id"] != "step4"]
+    groups = defaultdict(list)
+    for record in source:
+        groups[trial_key(record)].append(record)
+    strata = defaultdict(list)
+    for key, rows in groups.items():
+        signature = tuple(sorted({r["gesture_label"] for r in rows}))
+        strata[(rows[0]["subject_id"], rows[0]["session_id"], signature)].append(key)
+    selected = set()
+    rng = random.Random(seed)
+    for stratum in sorted(strata):
+        keys = sorted(strata[stratum])
+        rng.shuffle(keys)
+        count = 0 if percent == 0 else max(1, int(math.floor(len(keys) * percent / 100 + .5)))
+        selected.update(keys[:count])
+    retained = [r for r in source if trial_key(r) in selected]
+    dropped = {r["record_id"] for r in source if trial_key(r) not in selected}
+    assigned["train"] = [r for r in assigned["train"] if r["record_id"] not in dropped]
+    meta = dict(requested_percent=percent, seed=seed,
+                unit="whole_source_trial", stratification=["subject_id", "session_id", "gesture_composition"],
+                minimum_one_trial_per_stratum=percent > 0,
+                eligible_trials=len(groups), selected_trial_count=len(selected), selected_trials=sorted(selected),
+                eligible_records=len(source), selected_records=len(retained),
+                actual_record_percent=100 * len(retained) / len(source) if source else 0.0,
+                eligible_gesture_counts=dict(sorted(Counter(r["gesture_label"] for r in source).items())),
+                selected_gesture_counts=dict(sorted(Counter(r["gesture_label"] for r in retained).items())))
+    return meta, dropped
+
+
+def _apply_source_sampling(assigned, metadata, reasons, experiment, seed):
+    if experiment["name"] == "step4_to_step4":
+        return reasons
+    meta, dropped = _sample_source_training(assigned, validate_steps123_percent(experiment), seed)
+    metadata["steps123_training_sampling"] = meta
+    return dict(reasons, **{rid: "steps123_training_subsample" for rid in dropped})
+
+
+def validate_percentage_protocol(protocol, seed=42):
+    """Validate percentages of complete step4 assemblies, not individual rows."""
+    conflicting = {"train_repetitions", "test_repetitions", "validation"} & set(protocol)
+    if conflicting:
+        raise ValueError("grouped_percentages uses split_percentages and source_validation, not " + ", ".join(sorted(conflicting)))
+    percentages = protocol.get("split_percentages")
+    if not isinstance(percentages, dict) or set(percentages) != set(PARTS):
+        raise ValueError("split_percentages must contain exactly train, validation and test")
+    for part, value in percentages.items():
+        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 100:
+            raise ValueError("split_percentages values must be finite numbers between 0 and 100")
+    if percentages["train"] <= 0 or percentages["test"] <= 0:
+        raise ValueError("split_percentages train and test must be positive")
+    if not math.isclose(sum(percentages.values()), 100.0, rel_tol=0, abs_tol=1e-8):
+        raise ValueError("split_percentages must sum to 100")
+    split_seed = protocol.get("split_seed", seed)
+    if type(split_seed) is not int or not 0 <= split_seed < 2**63:
+        raise ValueError("split_seed must be a nonnegative integer smaller than 2**63")
+    source_validation = protocol.get("source_validation", {"strategy": "grouped_trials", "fraction": .2})
+    if not isinstance(source_validation, dict) or source_validation.get("strategy", "grouped_trials") not in ("grouped_trials", "none"):
+        raise ValueError("source_validation must specify grouped_trials or none")
+    if source_validation.get("strategy") != "none":
+        fraction = source_validation.get("fraction", .2)
+        if isinstance(fraction, bool) or not isinstance(fraction, (int, float)) or not math.isfinite(fraction) or not 0 < fraction < 1:
+            raise ValueError("source_validation.fraction must be between zero and one")
+    return dict(percentages), split_seed, dict(source_validation)
+
+
+def _percentage_macro_partitions(target, percentages, seed):
+    """Allocate whole assemblies by largest remainder; every positive part gets one.
+
+    All participants' assemblies are pooled. Counts target assembly percentages;
+    unequal assembly sizes can make annotation percentages differ. Stable sorted
+    group keys make the same seed independent of row order and source filenames.
+    """
+    keys = sorted({trial_key(r) for r in target})
+    active = [part for part in PARTS if percentages[part] > 0]
+    if len(keys) < len(active):
+        raise ValueError("Percentage split needs at least {} complete assemblies; found {}".format(len(active), len(keys)))
+    quotas = {part: len(keys) * percentages[part] / 100 for part in PARTS}
+    counts = {part: max(int(percentages[part] > 0), math.floor(quotas[part])) for part in PARTS}
+    while sum(counts.values()) < len(keys):
+        part = max(active, key=lambda p: quotas[p] - counts[p])
+        counts[part] += 1
+    while sum(counts.values()) > len(keys):
+        part = max((p for p in active if counts[p] > 1), key=lambda p: counts[p] - quotas[p])
+        counts[part] -= 1
+    random.Random(seed).shuffle(keys)
+    selected, cursor = {}, 0
+    for part in PARTS:
+        selected[part] = set(keys[cursor:cursor + counts[part]])
+        cursor += counts[part]
+    partitions = {part: [r for r in target if trial_key(r) in selected[part]] for part in PARTS}
+    meta = dict(requested_percentages=percentages, split_seed=seed, unit="whole_macro_assembly",
+                allocation="largest_remainder_minimum_one_per_nonzero_partition",
+                scope="all_selected_participants_pooled", total_assemblies=len(keys),
+                assembly_counts=counts, selected_trials={p: sorted(selected[p]) for p in PARTS},
+                annotation_counts={p: len(partitions[p]) for p in PARTS},
+                actual_assembly_percentages={p: 100 * counts[p] / len(keys) for p in PARTS},
+                actual_annotation_percentages={p: 100 * len(partitions[p]) / len(target) for p in PARTS})
+    return partitions, meta
 
 
 def _validation_pool(records, labels, settings, seed):
@@ -168,6 +290,8 @@ def build_splits(records, experiment, protocol, seed=42):
     name=experiment.get("name")
     if name not in EXPERIMENTS:
         raise ValueError("Unknown macro experiment: " + str(name))
+    validate_steps123_percent(experiment)
+    percentage_settings = validate_percentage_protocol(protocol, seed) if protocol.get("type") == "grouped_percentages" else None
     train_sessions=experiment.get("train_sessions",EXPERIMENTS[name])
     test_sessions=experiment.get("test_sessions",["step4"])
     if set(test_sessions)!={"step4"} or set(train_sessions)!=set(EXPERIMENTS[name]):
@@ -187,33 +311,55 @@ def build_splits(records, experiment, protocol, seed=42):
     target=[r for r in target if r["gesture_label"] in labels]
     reasons={r["record_id"]:"gesture_outside_target_vocabulary" for r in records if r["gesture_label"] not in labels}
     settings=deepcopy(protocol.get("validation") or {})
-    validation_none=settings.get("strategy")=="none"
-    protocol_name=protocol.get("name", "protocol1" if protocol.get("type")=="leave_one_subject_out" else "protocol2")
+    protocol_name=protocol.get("name", "protocol1" if protocol.get("type") in SUBJECT_PROTOCOL_TYPES else "protocol2")
     metadata=dict(experiment=name,train_sessions=list(train_sessions),test_sessions=["step4"],
                   target_gesture_labels=labels,seed=seed,split_before_windowing=True,
                   macro_grouping="subject/session/assembly_repetition_prefix",
                   source_only_labels=sorted({r["gesture_label"] for r in records}-set(labels)))
-    if protocol.get("type")=="leave_one_subject_out":
-        if settings.get("strategy","auto") not in ("auto","next_subject","none"):
-            raise ValueError("Participant validation must use next_subject or none")
+    if protocol.get("type") == "grouped_percentages":
+        percentages, split_seed, source_validation = percentage_settings
+        macro_parts, macro_meta = _percentage_macro_partitions(target, percentages, split_seed)
+        source = [r for r in eligible if r["session_id"] in train_sessions and r["session_id"] != "step4"]
+        if "step4" in train_sessions:
+            assigned = dict(train=macro_parts["train"] + source,
+                            validation=macro_parts["validation"], test=macro_parts["test"])
+            val_sessions, valmeta = ["step4"], {"strategy": "macro_percentage_partition"}
+        else:
+            train, validation, valmeta = _validation_pool(source, labels, source_validation, split_seed)
+            assigned = dict(train=train, validation=validation, test=macro_parts["test"])
+            val_sessions = list(train_sessions)
+            for part in ("train", "validation"):
+                reasons.update({r["record_id"]: "step4_not_used_for_source_only_training" for r in macro_parts[part]})
+        meta = dict(metadata, protocol=protocol_name, protocol_type="grouped_percentages",
+                    macro_percentage_split=macro_meta, validation=valmeta, validation_sessions=val_sessions,
+                    participant_scope="assemblies pooled across participants; not an unseen-participant protocol",
+                    step4_train_validation_used="step4" in train_sessions)
+        fold_reasons = _apply_source_sampling(assigned, meta, reasons, experiment, seed)
+        return [_finish(protocol_name, records, assigned, meta, labels, fold_reasons)]
+    if protocol.get("type") in SUBJECT_PROTOCOL_TYPES:
         subjects=sorted({r["subject_id"] for r in target})
-        tests=subjects if protocol.get("test_subject_id") is None else [protocol["test_subject_id"]]
-        if len(subjects)<(2 if validation_none else 3):
-            raise ValueError("Participant holdout needs at least two subjects, or three with validation")
         folds=[]
-        for test in tests:
-            if test not in subjects:
-                raise ValueError("Unknown step4 test participant: " + str(test))
-            validation=None if validation_none else settings.get("subject_id", protocol.get("validation_subject_id")) or subjects[(subjects.index(test)+1)%len(subjects)]
-            if validation is not None and (validation not in subjects or validation==test):
-                raise ValueError("Validation participant must be available and differ from test participant")
+        for selection in participant_partitions(subjects, protocol):
             val_sessions=["step4"] if "step4" in train_sessions else list(train_sessions)
-            assigned=dict(train=[r for r in eligible if r["session_id"] in train_sessions and r["subject_id"] not in (test,validation)],
-                          validation=[r for r in eligible if validation is not None and r["subject_id"]==validation and r["session_id"] in val_sessions],
-                          test=[r for r in target if r["subject_id"]==test])
-            meta=dict(metadata, protocol=protocol_name,protocol_type="leave_one_subject_out",test_subject_id=test,
-                      validation_subject_id=validation,validation_sessions=val_sessions)
-            folds.append(_finish(protocol_name+"_"+test,records,assigned,meta,labels,reasons))
+            assigned=dict(train=[r for r in eligible if r["session_id"] in train_sessions and r["subject_id"] in selection["train"]],
+                          validation=[r for r in eligible if r["subject_id"] in selection["validation"] and r["session_id"] in val_sessions],
+                          test=[r for r in target if r["subject_id"] in selection["test"]])
+            for part in PARTS:
+                absent=set(selection[part])-{r["subject_id"] for r in assigned[part]}
+                if absent:
+                    raise ValueError("Selected {} participants have no eligible annotations in the required context: {}".format(part, ", ".join(sorted(absent))))
+            meta=dict(metadata, protocol=protocol_name, protocol_type=protocol["type"],
+                      subject_selection=selection["selection"], subject_counts={p:len(selection[p]) for p in PARTS},
+                      requested_subject_counts=selection["requested_counts"],
+                      train_subject_ids=selection["train"], validation_subject_ids=selection["validation"],
+                      test_subject_ids=selection["test"], excluded_subject_ids=selection["excluded"],
+                      test_subject_id=selection["test"][0] if len(selection["test"])==1 else None,
+                      validation_subject_id=selection["validation"][0] if len(selection["validation"])==1 else None,
+                      validation_sessions=val_sessions)
+            fold_reasons=dict(reasons, **{r["record_id"]:"participant_not_selected"
+                                         for r in eligible if r["subject_id"] in selection["excluded"]})
+            fold_reasons = _apply_source_sampling(assigned, meta, fold_reasons, experiment, seed)
+            folds.append(_finish(protocol_name+"_"+"-".join(selection["test"]),records,assigned,meta,labels,fold_reasons))
         return folds
     if protocol.get("type") in ("held_out_repetitions","held_out_macro_repetitions"):
         train_reps=_ids(protocol.get("train_repetitions",[1,2]),"train_repetitions")
@@ -236,5 +382,6 @@ def build_splits(records, experiment, protocol, seed=42):
                   train_repetitions=sorted(train_reps),test_repetitions=sorted(test_reps),
                   validation=valmeta,validation_sessions=val_sessions,
                   participant_scope="participants may appear in both training and test")
-        return [_finish(protocol_name,records,assigned,meta,labels,reasons)]
+        fold_reasons = _apply_source_sampling(assigned, meta, reasons, experiment, seed)
+        return [_finish(protocol_name,records,assigned,meta,labels,fold_reasons)]
     raise ValueError("Unknown protocol type: " + str(protocol.get("type")))

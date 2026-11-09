@@ -101,6 +101,34 @@ def aggregate_fold_metrics(fold_metrics):
     return summary
 
 
+def format_fold_summary(results, aggregate=None):
+    """Show final test scores for each independently trained fold and their mean.
+
+Each fold has equal weight. In leave-one-subject-out evaluation this is also an
+equal-participant average. SD is the population standard deviation across folds,
+not a confidence interval; a fixed multi-subject test group is only one fold.
+    """
+    results = list(results)
+    aggregate = aggregate_fold_metrics(r["test_metrics"] for r in results) if aggregate is None else aggregate
+    if not results or aggregate["fold_count"] != len(results):
+        raise ValueError("Fold summary needs matching nonempty results and aggregate")
+    width = max(len("Fold"), *(len(r["name"]) for r in results))
+    row = "{:<" + str(width) + "}  {:>8}  {:>12}  {:>12}  {:>12}"
+    lines = ["", "Final summary: {} completed training fold(s)".format(len(results)),
+             row.format("Fold", "Examples", "Accuracy %", "Macro F1 %", "Weighted F1 %")]
+    for result in results:
+        metric = result["test_metrics"]
+        lines.append(row.format(result["name"], metric["sample_count"],
+            *("{:.2f}".format(100 * metric[key]) for key in ("accuracy", "macro_f1", "weighted_f1"))))
+    if len(results) > 1:
+        lines.append("Equal-fold mean +/- population SD (percentage points):")
+        for key, label in (("accuracy", "Test accuracy"), ("macro_f1", "Test macro F1"), ("weighted_f1", "Test weighted F1")):
+            lines.append("{}: {:.2f}% +/- {:.2f}".format(label, 100 * aggregate[key]["mean"], 100 * aggregate[key]["std"]))
+    else:
+        lines.append("One fixed split: no cross-fold variability estimate.")
+    return "\n".join(lines)
+
+
 def format_test_report(result):
     """Format a completed fold's saved test results without evaluating again.
 

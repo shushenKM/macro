@@ -61,6 +61,21 @@ def experiment_run_name(modality, config, protocol, *, prepare_only=False, synth
              "batch{}".format(training.get("batch_size", 4 if video else 64)),
              "epoch{}".format(training.get("epochs", 30)),
              protocol.get("name", protocol.get("type", "protocol"))]
+    if protocol.get("type") == "grouped_percentages":
+        parts.append("split" + "-".join("{:g}".format(protocol["split_percentages"][p]) for p in ("train", "validation", "test")))
+        parts.append("ss{}".format(protocol.get("split_seed", training.get("seed", 42))))
+    if protocol.get("type") in ("subject_holdout", "leave_one_subject_out"):
+        from macro_tools.subject_splits import normalize_subject_protocol
+        subject_protocol = normalize_subject_protocol(protocol)
+        counts = subject_protocol["subject_counts"]
+        parts.append("subjects" + "-".join(str(counts[p]) if counts[p] is not None else "auto"
+                                          for p in ("train", "validation", "test")))
+        parts.append("loso" if subject_protocol["subject_selection"] == "leave_one_subject_out"
+                     else "test-" + "-".join(token(s) for s in subject_protocol["test_subject_ids"]))
+        if subject_protocol["validation_subject_ids"]:
+            parts.append("val-" + "-".join(token(s) for s in subject_protocol["validation_subject_ids"]))
+    if "steps123_train_percent" in protocol:
+        parts.append("src{:g}pct".format(protocol["steps123_train_percent"]))
     key = "views" if video else "sensor_ids" if modality == "imu" else "grid_ids"
     selection = config.get(key) or []
     if selection:
@@ -72,9 +87,10 @@ def experiment_run_name(modality, config, protocol, *, prepare_only=False, synth
         parts.append("points{}".format(inputs.get("num_points", 128)))
     parts.extend(["lr{}".format(training.get("learning_rate", .0001 if video else .0005)),
                   "seed{}".format(training.get("seed", 42))])
-    for key, prefix in (("test_subject_id", "test"), ("validation_subject_id", "val")):
-        if protocol.get(key):
-            parts.append(prefix + "-" + token(protocol[key]))
+    if protocol.get("type") not in ("subject_holdout", "leave_one_subject_out"):
+        for key, prefix in (("test_subject_id", "test"), ("validation_subject_id", "val")):
+            if protocol.get(key):
+                parts.append(prefix + "-" + token(protocol[key]))
     if synthetic:
         parts.append("synthetic")
     if prepare_only:
@@ -90,6 +106,8 @@ def create_run_directory(modality, config, experiment, protocol, name=None, prep
         raise ValueError("Unknown modality")
     automatic = name is None
     combined = dict(protocol, name=experiment["name"] + "_" + protocol["name"])
+    if experiment["name"] in ("steps1234_to_step4", "steps123_to_step4"):
+        combined["steps123_train_percent"] = experiment.get("steps123_train_percent", 100)
     if automatic:
         name = experiment_run_name(modality, config, combined, prepare_only=prepare_only)
         if audit_only:

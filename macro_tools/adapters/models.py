@@ -25,14 +25,17 @@ class LogitsModel(nn.Module):
 def build_model(config, num_classes):
     modality = config["modality"]
     activate_source(modality)
+    if modality in ("imu", "semg"):
+        from scripts.model_selection import select_model
+        config = select_model(config, modality)
     points = (config.get("input") or {}).get("num_points", 128)
     parameters = config.get("model_parameters") or {}
     if modality == "imu":
         from imu.model import build_model as upstream_build
-        model = upstream_build(num_classes, points, parameters, sensor_count=len(config.get("sensor_ids", ["E45A", "E477"])))
+        model = upstream_build(num_classes, points, parameters, sensor_count=len(config.get("sensor_ids", ["E45A", "E477"])), model_name=config["model"])
     elif modality == "semg":
         from semg.model import build_model as upstream_build
-        model = upstream_build(num_classes, points, parameters, grid_count=len(config.get("grid_ids", ["grid1", "grid2"])))
+        model = upstream_build(num_classes, points, parameters, grid_count=len(config.get("grid_ids", ["grid1", "grid2"])), model_name=config["model"])
     elif modality in ("rgb", "depth"):
         from vision.models import build_model as upstream_build
         effective = deepcopy(config)

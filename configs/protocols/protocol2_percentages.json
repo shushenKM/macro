@@ -1,0 +1,15 @@
+{
+  "name": "protocol2_percentages",
+  "type": "grouped_percentages",
+  "split_before_windowing": true,
+  "split_seed": 42,
+  "split_percentages": {
+    "train": 70,
+    "validation": 15,
+    "test": 15
+  },
+  "source_validation": {
+    "strategy": "grouped_trials",
+    "fraction": 0.2
+  }
+}

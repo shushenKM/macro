@@ -151,8 +151,8 @@
     ]
   },
   "preprocessing": {
-    "bandpass_low_hz": 20,
-    "bandpass_high_hz": 450,
+    "bandpass_low_hz": 10,
+    "bandpass_high_hz": 300,
     "notch_hz": 50,
     "notch_q": 30,
     "filter_order": 4,

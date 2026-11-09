@@ -1,5 +1,6 @@
 {
   "name": "steps123_to_step4",
+  "steps123_train_percent": 50,
   "train_sessions": [
     "step1",
     "step2",

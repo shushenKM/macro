@@ -1,10 +1,12 @@
 {
   "name": "protocol1",
   "split_before_windowing": true,
-  "type": "leave_one_subject_out",
-  "test_subject_id": null,
-  "validation_subject_id": null,
-  "validation": {
-    "strategy": "next_subject"
-  }
+  "type": "subject_holdout",
+  "subject_counts": {
+    "train": null,
+    "validation": 1,
+    "test": 1
+  },
+  "test_subject_ids": null,
+  "validation_subject_ids": null
 }

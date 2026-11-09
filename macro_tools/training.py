@@ -11,7 +11,7 @@ when validation loss stalls. The held-out test split is evaluated exactly once,
 after restoring the selected checkpoint. Without validation, the last epoch is
 selected and validation-dependent scheduling and early stopping are disabled.
 
-Each fold saves split provenance, checkpoints, epoch history, runtime details,
+Each fold saves checkpoints, epoch history, compact runtime details,
 per-gesture test metrics, predictions and a confusion matrix. The final test
 report is also printed directly in the terminal. Checkpoints contain only
 tensors and ordinary Python values and can be loaded with weights_only=True.
@@ -80,21 +80,16 @@ def _samples(split):
 
 
 def save_prepared_fold(fold, output_dir, save_windows=False):
-    """Save portable split provenance; optional signal arrays stay under macro/runs."""
+    """Save signal arrays only when explicitly requested; metadata stays in memory."""
     output = _output_directory(output_dir)
     arrays = {}
     for part in ("train", "validation", "test"):
         split = fold["splits"][part]
-        _write_json(output, part + "_samples.json", _samples(split))
         if isinstance(split, dict):
             arrays.update({part + "_" + key: split[key] for key in ("x", "y")})
     if save_windows and arrays:
         with _artifact(output, "windows.npz").open("wb") as stream:
             np.savez_compressed(stream, **arrays)
-    _write_json(output, "split_summary.json", fold.get("split_summary", {}))
-    _write_json(output, "protocol.json", fold.get("protocol_metadata", {}))
-    _write_json(output, "normalization.json", fold.get("normalization", {}))
-    _write_json(output, "excluded_records.json", fold.get("excluded_records", []))
 
 
 def choose_device(value="auto"):
@@ -274,7 +269,6 @@ def _checkpoint(output, filename, model, optimizer, scheduler, scaler, epoch,
 
 
 def _save_test_outputs(output, samples, metrics, predictions, label_mapping):
-    _write_json(output, "test_metrics.json", metrics)
     names = metrics["class_names"]
     with _artifact(output, "confusion_matrix.csv").open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
@@ -334,8 +328,6 @@ def train_fold(fold, label_mapping, config, output_dir, dataset_root):
         info["scheduler"]["disabled_reason"] = "No validation split; no test information is used for scheduling"
     scaler = torch.amp.GradScaler("cuda", enabled=amp)
     environment = environment_info(device, amp)
-    _write_json(output, "environment.json", environment)
-    _write_json(output, "model.json", info)
     save_prepared_fold(fold, output, settings.get("save_windows", False))
     started = time.monotonic()
     history, best_score, best_loss, best_epoch, stale = [], -1.0, float("inf"), 0, 0
@@ -420,7 +412,9 @@ def train_fold(fold, label_mapping, config, output_dir, dataset_root):
                   synthetic=bool(config.get("synthetic", False)), epochs_completed=len(history),
                   best_epoch=best_epoch if has_validation else len(history), selected_epoch=payload["epoch"],
                   selected_checkpoint=selected_name, selection=selection, elapsed_s=time.monotonic()-started,
-                  test_metrics=test_metrics)
+                  test_metrics=test_metrics, training_details=dict(
+                  model={key: value for key, value in info.items() if key != "normalization"}, environment=environment,
+                  parameters=config.get("training", {}), split_summary=fold.get("split_summary", {})))
     _write_json(output, "result.json", result)
     print(format_test_report(result), flush=True)
     from macro_tools.plots import save_training_report
