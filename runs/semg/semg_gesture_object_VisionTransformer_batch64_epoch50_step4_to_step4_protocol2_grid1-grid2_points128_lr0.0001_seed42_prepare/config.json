@@ -1,0 +1,614 @@
+{
+  "modality": "semg",
+  "config": {
+    "modality": "semg",
+    "dataset_config": "configs/dataset.json",
+    "model": "VisionTransformer",
+    "upstream_project": "semg/vis_transformer",
+    "grid_ids": [
+      "grid1",
+      "grid2"
+    ],
+    "subject_ids": null,
+    "session_ids": [
+      "step1",
+      "step2",
+      "step3",
+      "step4"
+    ],
+    "expected_class_count": null,
+    "expected_gesture_labels": null,
+    "channel_layout": {
+      "grid1": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23,
+        24,
+        25,
+        26,
+        27,
+        28,
+        29,
+        30,
+        31,
+        32,
+        33,
+        34,
+        35,
+        36,
+        37,
+        38,
+        39,
+        40,
+        41,
+        42,
+        43,
+        44,
+        45,
+        46,
+        47,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        58,
+        59,
+        60,
+        61,
+        62,
+        63,
+        64
+      ],
+      "grid2": [
+        65,
+        66,
+        67,
+        68,
+        69,
+        70,
+        71,
+        72,
+        73,
+        74,
+        75,
+        76,
+        77,
+        78,
+        79,
+        80,
+        81,
+        82,
+        83,
+        84,
+        85,
+        86,
+        87,
+        88,
+        89,
+        90,
+        91,
+        92,
+        93,
+        94,
+        95,
+        96,
+        97,
+        98,
+        99,
+        100,
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107,
+        108,
+        109,
+        110,
+        111,
+        112,
+        113,
+        114,
+        115,
+        116,
+        117,
+        118,
+        119,
+        120,
+        121,
+        122,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128
+      ]
+    },
+    "preprocessing": {
+      "bandpass_low_hz": 10,
+      "bandpass_high_hz": 300,
+      "notch_hz": 50,
+      "notch_q": 30,
+      "filter_order": 4,
+      "envelope_lowpass_hz": 10,
+      "target_sample_rate_hz": 100,
+      "timestamp_tolerance_fraction": 0.05
+    },
+    "input": {
+      "num_points": 128
+    },
+    "screw_sampling": {
+      "duration_s": 1.0,
+      "segments_per_trial": 5,
+      "short_parent_policy": "shrink"
+    },
+    "data_quality": {
+      "allow_cross_subject_overlap": true,
+      "excluded_record_ids": [],
+      "recording_overrides": {},
+      "allow_within_subject_test_overlap": true
+    },
+    "model_parameters": {
+      "patch_size": [
+        8,
+        8
+      ],
+      "embed_dim": 64,
+      "depth": 1,
+      "n_heads": 8,
+      "mlp_ratio": 1.0,
+      "qkv_bias": false,
+      "p": 0.1,
+      "attn_p": 0.27
+    },
+    "training": {
+      "epochs": 50,
+      "batch_size": 64,
+      "learning_rate": 0.0001,
+      "weight_decay": 0.001,
+      "seed": 42,
+      "device": "auto",
+      "cpu_threads": 1,
+      "deterministic": true,
+      "scheduler": {
+        "type": "reduce_on_plateau",
+        "factor": 0.5,
+        "patience": 3,
+        "min_lr": 1e-06
+      },
+      "early_stopping_patience": 10,
+      "gradient_clip_norm": 5.0,
+      "save_windows": false,
+      "num_workers": 0,
+      "amp": false
+    },
+    "output_root": "runs/semg",
+    "task": "gesture_object"
+  },
+  "dataset": {
+    "dataset_root": "../dataset",
+    "read_only": true,
+    "annotation_locale": "EN",
+    "annotation_patterns": {
+      "imu_semg": "imu_semg_gesture_segments*_{locale}.csv",
+      "rgbd": "rgb_depth_gesture_segments*_{locale}.csv"
+    },
+    "macro_repetition_grouping": "prefix",
+    "folders": {
+      "annotations": "annotation",
+      "imu": "imu",
+      "semg": "semg",
+      "rgbd": "rgbd"
+    },
+    "session_mapping": {
+      "step1": "session1",
+      "step2": "session2",
+      "step3": "session3",
+      "step4": "session4"
+    },
+    "video_recording_overrides": {}
+  },
+  "experiment": {
+    "name": "step4_to_step4",
+    "train_sessions": [
+      "step4"
+    ],
+    "test_sessions": [
+      "step4"
+    ],
+    "target_gesture_labels": [
+      "approach",
+      "grasp",
+      "lift",
+      "move",
+      "screw",
+      "release",
+      "insert"
+    ]
+  },
+  "protocol": {
+    "name": "protocol2",
+    "split_before_windowing": true,
+    "grouped_percentages": false,
+    "split_percentages": {
+      "train": 70,
+      "validation": 15,
+      "test": 15
+    },
+    "split_seed": 42,
+    "type": "held_out_repetitions",
+    "train_repetitions": [
+      1,
+      2
+    ],
+    "test_repetitions": [
+      3
+    ],
+    "validation": {
+      "strategy": "grouped_trials",
+      "fraction": 0.2
+    },
+    "source_validation": {
+      "strategy": "grouped_trials",
+      "fraction": 0.2
+    }
+  },
+  "status": "prepared",
+  "synthetic": false,
+  "preparation": {
+    "fold_count": 1,
+    "folds": [
+      {
+        "name": "protocol2",
+        "split_summary": {
+          "train": {
+            "parents": 936,
+            "examples": 936,
+            "subjects": [
+              "1Alice",
+              "2Bingqian",
+              "3Chawki",
+              "4Chenrui",
+              "5Imad",
+              "6Jeremy",
+              "7Shushen",
+              "8Yang"
+            ],
+            "gesture_counts": {
+              "approach": 156,
+              "grasp": 156,
+              "lift": 156,
+              "move": 156,
+              "screw": 78,
+              "release": 156,
+              "insert": 78
+            },
+            "class_counts": {
+              "approach::object=1": 39,
+              "grasp::object=1": 39,
+              "lift::object=1": 39,
+              "move::object=1": 39,
+              "screw::object=1": 39,
+              "release::object=1": 39,
+              "approach::object=2": 39,
+              "grasp::object=2": 39,
+              "lift::object=2": 39,
+              "move::object=2": 39,
+              "screw::object=2": 39,
+              "release::object=2": 39,
+              "approach::object=3": 39,
+              "grasp::object=3": 39,
+              "lift::object=3": 39,
+              "move::object=3": 39,
+              "insert::object=3": 39,
+              "release::object=3": 39,
+              "approach::object=4": 26,
+              "grasp::object=4": 26,
+              "lift::object=4": 26,
+              "move::object=4": 26,
+              "insert::object=4": 26,
+              "release::object=4": 26,
+              "approach::object=5": 13,
+              "grasp::object=5": 13,
+              "lift::object=5": 13,
+              "move::object=5": 13,
+              "insert::object=5": 13,
+              "release::object=5": 13
+            },
+            "session_counts": {
+              "step4": 936
+            }
+          },
+          "validation": {
+            "parents": 216,
+            "examples": 216,
+            "subjects": [
+              "3Chawki",
+              "4Chenrui",
+              "5Imad"
+            ],
+            "gesture_counts": {
+              "approach": 36,
+              "grasp": 36,
+              "lift": 36,
+              "move": 36,
+              "screw": 18,
+              "release": 36,
+              "insert": 18
+            },
+            "class_counts": {
+              "approach::object=1": 9,
+              "grasp::object=1": 9,
+              "lift::object=1": 9,
+              "move::object=1": 9,
+              "screw::object=1": 9,
+              "release::object=1": 9,
+              "approach::object=2": 9,
+              "grasp::object=2": 9,
+              "lift::object=2": 9,
+              "move::object=2": 9,
+              "screw::object=2": 9,
+              "release::object=2": 9,
+              "approach::object=3": 9,
+              "grasp::object=3": 9,
+              "lift::object=3": 9,
+              "move::object=3": 9,
+              "insert::object=3": 9,
+              "release::object=3": 9,
+              "approach::object=4": 6,
+              "grasp::object=4": 6,
+              "lift::object=4": 6,
+              "move::object=4": 6,
+              "insert::object=4": 6,
+              "release::object=4": 6,
+              "approach::object=5": 3,
+              "grasp::object=5": 3,
+              "lift::object=5": 3,
+              "move::object=5": 3,
+              "insert::object=5": 3,
+              "release::object=5": 3
+            },
+            "session_counts": {
+              "step4": 216
+            }
+          },
+          "test": {
+            "parents": 576,
+            "examples": 576,
+            "subjects": [
+              "1Alice",
+              "2Bingqian",
+              "3Chawki",
+              "4Chenrui",
+              "5Imad",
+              "6Jeremy",
+              "7Shushen",
+              "8Yang"
+            ],
+            "gesture_counts": {
+              "approach": 96,
+              "grasp": 96,
+              "lift": 96,
+              "move": 96,
+              "screw": 48,
+              "release": 96,
+              "insert": 48
+            },
+            "class_counts": {
+              "approach::object=1": 24,
+              "grasp::object=1": 24,
+              "lift::object=1": 24,
+              "move::object=1": 24,
+              "screw::object=1": 24,
+              "release::object=1": 24,
+              "approach::object=2": 24,
+              "grasp::object=2": 24,
+              "lift::object=2": 24,
+              "move::object=2": 24,
+              "screw::object=2": 24,
+              "release::object=2": 24,
+              "approach::object=3": 24,
+              "grasp::object=3": 24,
+              "lift::object=3": 24,
+              "move::object=3": 24,
+              "insert::object=3": 24,
+              "release::object=3": 24,
+              "approach::object=4": 16,
+              "grasp::object=4": 16,
+              "lift::object=4": 16,
+              "move::object=4": 16,
+              "insert::object=4": 16,
+              "release::object=4": 16,
+              "approach::object=5": 8,
+              "grasp::object=5": 8,
+              "lift::object=5": 8,
+              "move::object=5": 8,
+              "insert::object=5": 8,
+              "release::object=5": 8
+            },
+            "session_counts": {
+              "step4": 576
+            }
+          }
+        },
+        "protocol": {
+          "experiment": "step4_to_step4",
+          "train_sessions": [
+            "step4"
+          ],
+          "test_sessions": [
+            "step4"
+          ],
+          "task": "gesture_object",
+          "target_gesture_labels": [
+            "approach",
+            "grasp",
+            "insert",
+            "lift",
+            "move",
+            "release",
+            "screw"
+          ],
+          "target_class_labels": [
+            "approach::object=1",
+            "approach::object=2",
+            "approach::object=3",
+            "approach::object=4",
+            "approach::object=5",
+            "grasp::object=1",
+            "grasp::object=2",
+            "grasp::object=3",
+            "grasp::object=4",
+            "grasp::object=5",
+            "insert::object=3",
+            "insert::object=4",
+            "insert::object=5",
+            "lift::object=1",
+            "lift::object=2",
+            "lift::object=3",
+            "lift::object=4",
+            "lift::object=5",
+            "move::object=1",
+            "move::object=2",
+            "move::object=3",
+            "move::object=4",
+            "move::object=5",
+            "release::object=1",
+            "release::object=2",
+            "release::object=3",
+            "release::object=4",
+            "release::object=5",
+            "screw::object=1",
+            "screw::object=2"
+          ],
+          "seed": 42,
+          "split_before_windowing": true,
+          "macro_grouping": "subject/session/assembly_repetition_prefix",
+          "source_only_labels": [
+            "deinsert",
+            "place"
+          ],
+          "source_only_class_labels": [
+            "approach::object=6",
+            "deinsert::object=3",
+            "deinsert::object=4",
+            "deinsert::object=5",
+            "grasp::object=6",
+            "lift::object=6",
+            "move::object=6",
+            "place::object=1",
+            "place::object=2",
+            "place::object=3",
+            "place::object=4",
+            "place::object=5",
+            "place::object=6",
+            "release::object=6"
+          ],
+          "protocol": "protocol2",
+          "protocol_type": "held_out_macro_repetitions",
+          "train_repetitions": [
+            1,
+            2
+          ],
+          "test_repetitions": [
+            3
+          ],
+          "validation": {
+            "strategy": "grouped_trials",
+            "fraction": 0.2,
+            "seed": 42,
+            "eligible_trials": 16
+          },
+          "validation_sessions": [
+            "step4"
+          ],
+          "participant_scope": "participants may appear in both training and test"
+        }
+      }
+    ],
+    "warning_counts": {
+      "flat_semg_channels": 22
+    },
+    "label_mapping": {
+      "approach::object=1": 0,
+      "approach::object=2": 1,
+      "approach::object=3": 2,
+      "approach::object=4": 3,
+      "approach::object=5": 4,
+      "grasp::object=1": 5,
+      "grasp::object=2": 6,
+      "grasp::object=3": 7,
+      "grasp::object=4": 8,
+      "grasp::object=5": 9,
+      "insert::object=3": 10,
+      "insert::object=4": 11,
+      "insert::object=5": 12,
+      "lift::object=1": 13,
+      "lift::object=2": 14,
+      "lift::object=3": 15,
+      "lift::object=4": 16,
+      "lift::object=5": 17,
+      "move::object=1": 18,
+      "move::object=2": 19,
+      "move::object=3": 20,
+      "move::object=4": 21,
+      "move::object=5": 22,
+      "release::object=1": 23,
+      "release::object=2": 24,
+      "release::object=3": 25,
+      "release::object=4": 26,
+      "release::object=5": 27,
+      "screw::object=1": 28,
+      "screw::object=2": 29
+    }
+  },
+  "current_fold": null,
+  "source_versions": {
+    "imu_semg": {
+      "relative_path": "../imu_semg",
+      "git_revision": "33ef9aa616892e8986f3ee813dd221ac22d976cd",
+      "loaded_file_sha256": {
+        "scripts/__init__.py": "6129a086245673685571d48c27aac7867ed03e00304e92a5337dd45841e908dd",
+        "scripts/annotations.py": "cc1d239fb2ecb2a29493c453781deb734556c52e87d700ddbfdd8d9c8a6bd40d",
+        "semg/__init__.py": "6b8a29301289a3d9e86b06b58493c32be3e6f473a6038f25e64b39cf2be5cfed",
+        "scripts/labels.py": "a009d1772b513276b45b8a96aafe556f50d29c60aa90851260b84844cd0c2496",
+        "scripts/tasks.py": "72c7208cbf3326133ed88acf3c07474e3bbdaff4212df05deb9d5127eba74918",
+        "scripts/overlap_policy.py": "57cbea4eed4d01aa94a81ed277fe38370519628b9bf8b4490d508360c97ee4d2",
+        "scripts/protocol_config.py": "8bb482b2a249b55666cb06642b45d73a83a72a8f94b368ea5e63991a2bed53dc",
+        "scripts/protocols.py": "284c9fc0ecd035da02024ddbdb9467d97ce7414d63d4fd76fd9446d46a347c0d",
+        "scripts/training_protocols.py": "0723a4c193eca853c7525736d73781118720db5faa586065d56701a018dc0f9a",
+        "semg/recordings.py": "6d639d6c3a510385bf22fb604aea8c6b5d50ab324fa56593f3d609121c197cbc",
+        "semg/preprocessing.py": "bc7fa62565695f808bbf5a003bfd75e3530e90b8adc32edbaeee563a494354b1",
+        "semg/dataset.py": "321193fd5becd8e44ba0efc4c16febfb46643957e0dac151926c7c3fcead8f1b"
+      }
+    }
+  }
+}

@@ -1,0 +1,5 @@
+
+Final summary: 1 completed training fold(s)
+Fold                   Examples    Accuracy %    Macro F1 %  Weighted F1 %
+protocol2_percentages       432         94.68         94.60         94.75
+One fixed split: no cross-fold variability estimate.

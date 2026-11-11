@@ -1,0 +1,8 @@
+true_gesture / predicted_gesture,approach,grasp,insert,lift,move,release,screw
+approach,57,1,0,0,0,2,0
+grasp,0,59,1,0,0,0,0
+insert,0,0,28,0,1,1,0
+lift,0,0,0,60,0,0,0
+move,1,0,2,0,57,0,0
+release,3,1,0,0,0,56,0
+screw,0,0,0,0,0,0,30

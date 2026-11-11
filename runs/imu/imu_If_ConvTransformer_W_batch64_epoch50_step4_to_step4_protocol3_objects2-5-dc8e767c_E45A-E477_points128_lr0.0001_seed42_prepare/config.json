@@ -1,0 +1,433 @@
+{
+  "modality": "imu",
+  "config": {
+    "modality": "imu",
+    "dataset_config": "configs/dataset.json",
+    "model": "If_ConvTransformer_W",
+    "upstream_project": "imu/conv_transformer",
+    "sensor_ids": [
+      "E45A",
+      "E477"
+    ],
+    "subject_ids": null,
+    "session_ids": [
+      "step1",
+      "step2",
+      "step3",
+      "step4"
+    ],
+    "expected_class_count": null,
+    "expected_gesture_labels": null,
+    "preprocessing": {
+      "acceleration": "Accel_WR",
+      "target_sample_rate_hz": 100,
+      "lowpass_hz": 20,
+      "gravity_cutoff_hz": 0.3,
+      "filter_order": 3,
+      "gravity_representation": "vector"
+    },
+    "input": {
+      "num_points": 128
+    },
+    "screw_sampling": {
+      "duration_s": 1.0
+    },
+    "data_quality": {
+      "allow_cross_subject_overlap": true,
+      "excluded_record_ids": [],
+      "recording_overrides": {},
+      "allow_within_subject_test_overlap": true
+    },
+    "model_parameters": {
+      "feature_channel": 64,
+      "kernel_size": 5,
+      "kernel_size_grav": 3,
+      "scale_num": 2,
+      "feature_channel_out": 128,
+      "multiheads": 1,
+      "drop_rate": 0.2
+    },
+    "training": {
+      "epochs": 50,
+      "batch_size": 64,
+      "learning_rate": 0.0001,
+      "weight_decay": 0.001,
+      "seed": 42,
+      "device": "auto",
+      "cpu_threads": 1,
+      "deterministic": true,
+      "scheduler": {
+        "type": "reduce_on_plateau",
+        "factor": 0.5,
+        "patience": 3,
+        "min_lr": 1e-06
+      },
+      "early_stopping_patience": 10,
+      "gradient_clip_norm": 5.0,
+      "save_windows": false,
+      "num_workers": 0,
+      "amp": true
+    },
+    "output_root": "runs/imu"
+  },
+  "dataset": {
+    "dataset_root": "../dataset",
+    "read_only": true,
+    "annotation_locale": "EN",
+    "annotation_patterns": {
+      "imu_semg": "imu_semg_gesture_segments*_{locale}.csv",
+      "rgbd": "rgb_depth_gesture_segments*_{locale}.csv"
+    },
+    "macro_repetition_grouping": "prefix",
+    "folders": {
+      "annotations": "annotation",
+      "imu": "imu",
+      "semg": "semg",
+      "rgbd": "rgbd"
+    },
+    "session_mapping": {
+      "step1": "session1",
+      "step2": "session2",
+      "step3": "session3",
+      "step4": "session4"
+    },
+    "video_recording_overrides": {}
+  },
+  "experiment": {
+    "name": "step4_to_step4",
+    "train_sessions": [
+      "step4"
+    ],
+    "test_sessions": [
+      "step4"
+    ],
+    "target_gesture_labels": [
+      "approach",
+      "grasp",
+      "lift",
+      "move",
+      "screw",
+      "release",
+      "insert"
+    ]
+  },
+  "protocol": {
+    "name": "protocol3",
+    "type": "held_out_objects",
+    "split_before_windowing": true,
+    "test_object_ids": {
+      "approach": [
+        "5"
+      ],
+      "grasp": [
+        "5"
+      ],
+      "lift": [
+        "5"
+      ],
+      "move": [
+        "5"
+      ],
+      "release": [
+        "5"
+      ],
+      "insert": [
+        "5"
+      ],
+      "screw": [
+        "2"
+      ]
+    },
+    "assembly_split": {
+      "name": "protocol3_assemblies",
+      "type": "held_out_repetitions",
+      "split_before_windowing": true,
+      "grouped_percentages": false,
+      "train_repetitions": [
+        1,
+        2
+      ],
+      "test_repetitions": [
+        3
+      ],
+      "validation": {
+        "strategy": "grouped_trials",
+        "fraction": 0.2
+      },
+      "split_percentages": {
+        "train": 70,
+        "validation": 15,
+        "test": 15
+      },
+      "split_seed": 42
+    },
+    "source_validation": {
+      "strategy": "grouped_trials",
+      "fraction": 0.2
+    }
+  },
+  "status": "prepared",
+  "synthetic": false,
+  "preparation": {
+    "fold_count": 1,
+    "folds": [
+      {
+        "name": "protocol3",
+        "split_summary": {
+          "train": {
+            "parents": 819,
+            "examples": 819,
+            "subjects": [
+              "1Alice",
+              "2Bingqian",
+              "3Chawki",
+              "4Chenrui",
+              "5Imad",
+              "6Jeremy",
+              "7Shushen",
+              "8Yang"
+            ],
+            "gesture_counts": {
+              "approach": 143,
+              "grasp": 143,
+              "lift": 143,
+              "move": 143,
+              "screw": 39,
+              "release": 143,
+              "insert": 65
+            },
+            "session_counts": {
+              "step4": 819
+            }
+          },
+          "validation": {
+            "parents": 189,
+            "examples": 189,
+            "subjects": [
+              "3Chawki",
+              "4Chenrui",
+              "5Imad"
+            ],
+            "gesture_counts": {
+              "approach": 33,
+              "grasp": 33,
+              "lift": 33,
+              "move": 33,
+              "screw": 9,
+              "release": 33,
+              "insert": 15
+            },
+            "session_counts": {
+              "step4": 189
+            }
+          },
+          "test": {
+            "parents": 72,
+            "examples": 72,
+            "subjects": [
+              "1Alice",
+              "2Bingqian",
+              "3Chawki",
+              "4Chenrui",
+              "5Imad",
+              "6Jeremy",
+              "7Shushen",
+              "8Yang"
+            ],
+            "gesture_counts": {
+              "screw": 24,
+              "approach": 8,
+              "grasp": 8,
+              "lift": 8,
+              "move": 8,
+              "insert": 8,
+              "release": 8
+            },
+            "session_counts": {
+              "step4": 72
+            }
+          }
+        },
+        "protocol": {
+          "experiment": "step4_to_step4",
+          "train_sessions": [
+            "step4"
+          ],
+          "test_sessions": [
+            "step4"
+          ],
+          "target_gesture_labels": [
+            "approach",
+            "grasp",
+            "insert",
+            "lift",
+            "move",
+            "release",
+            "screw"
+          ],
+          "seed": 42,
+          "split_before_windowing": true,
+          "macro_grouping": "subject/session/assembly_repetition_prefix",
+          "source_only_labels": [
+            "deinsert",
+            "place"
+          ],
+          "protocol": "protocol3",
+          "protocol_type": "held_out_objects",
+          "object_holdout_scope": "within_gesture",
+          "test_object_ids": {
+            "approach": [
+              "5"
+            ],
+            "grasp": [
+              "5"
+            ],
+            "lift": [
+              "5"
+            ],
+            "move": [
+              "5"
+            ],
+            "release": [
+              "5"
+            ],
+            "insert": [
+              "5"
+            ],
+            "screw": [
+              "2"
+            ]
+          },
+          "step4_train_object_ids": {
+            "approach": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "grasp": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "insert": [
+              "3",
+              "4"
+            ],
+            "lift": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "move": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "release": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "screw": [
+              "1"
+            ]
+          },
+          "assembly_split": {
+            "name": "protocol3_assemblies",
+            "type": "held_out_repetitions",
+            "split_before_windowing": true,
+            "grouped_percentages": false,
+            "train_repetitions": [
+              1,
+              2
+            ],
+            "test_repetitions": [
+              3
+            ],
+            "validation": {
+              "strategy": "grouped_trials",
+              "fraction": 0.2
+            },
+            "split_percentages": {
+              "train": 70,
+              "validation": 15,
+              "test": 15
+            },
+            "split_seed": 42
+          },
+          "assembly_counts_before_object_filter": {
+            "train": 13,
+            "validation": 3,
+            "test": 8
+          },
+          "step4_annotation_counts_before_object_filter": {
+            "train": 936,
+            "validation": 216,
+            "test": 576
+          },
+          "step4_annotation_counts_after_object_filter": {
+            "train": 819,
+            "validation": 189,
+            "test": 72
+          },
+          "step4_train_validation_used": true,
+          "validation": {
+            "strategy": "grouped_trials",
+            "fraction": 0.2,
+            "seed": 42,
+            "eligible_trials": 16
+          },
+          "validation_sessions": [
+            "step4"
+          ],
+          "source_object_exclusion": "same held-out gesture-object pairs as step4",
+          "participant_scope": "participants may occur in multiple partitions; assembly groups are disjoint",
+          "excluded_reason_counts": {
+            "gesture_outside_target_vocabulary": 480,
+            "held_out_object_in_training_assembly": 144,
+            "outside_experiment_or_holdout": 1728,
+            "training_object_in_test_assembly": 504
+          }
+        }
+      }
+    ],
+    "warning_counts": {},
+    "label_mapping": {
+      "approach": 0,
+      "grasp": 1,
+      "insert": 2,
+      "lift": 3,
+      "move": 4,
+      "release": 5,
+      "screw": 6
+    }
+  },
+  "current_fold": null,
+  "source_versions": {
+    "imu_semg": {
+      "relative_path": "../imu_semg",
+      "git_revision": "33ef9aa616892e8986f3ee813dd221ac22d976cd",
+      "loaded_file_sha256": {
+        "scripts/__init__.py": "6129a086245673685571d48c27aac7867ed03e00304e92a5337dd45841e908dd",
+        "scripts/annotations.py": "cc1d239fb2ecb2a29493c453781deb734556c52e87d700ddbfdd8d9c8a6bd40d",
+        "imu/__init__.py": "d1449b6c734120f6936b2e9378e9ed4f5386b66ce788de77c85f5bbcd19bf5e5",
+        "scripts/labels.py": "a009d1772b513276b45b8a96aafe556f50d29c60aa90851260b84844cd0c2496",
+        "scripts/tasks.py": "72c7208cbf3326133ed88acf3c07474e3bbdaff4212df05deb9d5127eba74918",
+        "scripts/overlap_policy.py": "57cbea4eed4d01aa94a81ed277fe38370519628b9bf8b4490d508360c97ee4d2",
+        "scripts/protocol_config.py": "8bb482b2a249b55666cb06642b45d73a83a72a8f94b368ea5e63991a2bed53dc",
+        "scripts/protocols.py": "284c9fc0ecd035da02024ddbdb9467d97ce7414d63d4fd76fd9446d46a347c0d",
+        "scripts/training_protocols.py": "0723a4c193eca853c7525736d73781118720db5faa586065d56701a018dc0f9a",
+        "imu/recordings.py": "7f72a428f7809f4927e4bae05dc99b3a22358b4ca7f9b9ffc85391dcc445da1e",
+        "scripts/intervals.py": "d2ad0bc5d9dc9d9fa19f9dda37d789396308d65371c086fba66440fe6e66859a",
+        "imu/preprocessing.py": "6a57fc7e9b4b0ed17f45b75458c667951bde00844650ab9be33534a2c9846220",
+        "imu/sampling.py": "2a1a5bbf758ed0a30910f381666137b0db3a223bd9e6b6028df748caf53bb24d",
+        "imu/dataset.py": "04ff4ba2dc75889d59902ad4379b7462f0101a29f6ba669a5db83abe3e36e298"
+      }
+    }
+  }
+}

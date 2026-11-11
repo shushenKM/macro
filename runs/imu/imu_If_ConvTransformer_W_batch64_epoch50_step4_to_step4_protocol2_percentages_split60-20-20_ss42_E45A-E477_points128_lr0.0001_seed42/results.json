@@ -1,0 +1,313 @@
+[
+  {
+    "name": "protocol2_percentages",
+    "fold": "protocol2_percentages",
+    "modality": "imu",
+    "model": "If_ConvTransformer_W",
+    "views": null,
+    "sensor_ids": [
+      "E45A",
+      "E477"
+    ],
+    "grid_ids": null,
+    "synthetic": false,
+    "epochs_completed": 24,
+    "best_epoch": 14,
+    "selected_epoch": 14,
+    "selected_checkpoint": "best.pt",
+    "selection": "validation_macro_f1",
+    "elapsed_s": 48.54600000000028,
+    "test_metrics": {
+      "accuracy": 0.9638888888888889,
+      "macro_f1": 0.9632380463270803,
+      "weighted_f1": 0.9639416551411564,
+      "per_class": {
+        "approach": {
+          "index": 0,
+          "precision": 0.9344262295081968,
+          "recall": 0.95,
+          "f1": 0.9421487603305784,
+          "support": 60
+        },
+        "grasp": {
+          "index": 1,
+          "precision": 0.9672131147540983,
+          "recall": 0.9833333333333333,
+          "f1": 0.9752066115702478,
+          "support": 60
+        },
+        "insert": {
+          "index": 2,
+          "precision": 0.9032258064516129,
+          "recall": 0.9333333333333333,
+          "f1": 0.9180327868852459,
+          "support": 30
+        },
+        "lift": {
+          "index": 3,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 60
+        },
+        "move": {
+          "index": 4,
+          "precision": 0.9827586206896551,
+          "recall": 0.95,
+          "f1": 0.9661016949152542,
+          "support": 60
+        },
+        "release": {
+          "index": 5,
+          "precision": 0.9491525423728814,
+          "recall": 0.9333333333333333,
+          "f1": 0.9411764705882353,
+          "support": 60
+        },
+        "screw": {
+          "index": 6,
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1": 1.0,
+          "support": 30
+        }
+      },
+      "confusion_matrix": [
+        [
+          57,
+          1,
+          0,
+          0,
+          0,
+          2,
+          0
+        ],
+        [
+          0,
+          59,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          28,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          60,
+          0,
+          0,
+          0
+        ],
+        [
+          1,
+          0,
+          2,
+          0,
+          57,
+          0,
+          0
+        ],
+        [
+          3,
+          1,
+          0,
+          0,
+          0,
+          56,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          30
+        ]
+      ],
+      "class_names": [
+        "approach",
+        "grasp",
+        "insert",
+        "lift",
+        "move",
+        "release",
+        "screw"
+      ],
+      "sample_count": 360,
+      "loss": 0.1376149270269606
+    },
+    "training_details": {
+      "model": {
+        "name": "If_ConvTransformer_W",
+        "class_name": "LogitsModel",
+        "model_parameters": {
+          "feature_channel": 64,
+          "kernel_size": 5,
+          "kernel_size_grav": 3,
+          "scale_num": 2,
+          "feature_channel_out": 128,
+          "multiheads": 1,
+          "drop_rate": 0.2
+        },
+        "modality": "imu",
+        "views": null,
+        "sensor_ids": [
+          "E45A",
+          "E477"
+        ],
+        "grid_ids": null,
+        "input": {
+          "num_points": 128
+        },
+        "preprocessing": {
+          "acceleration": "Accel_WR",
+          "target_sample_rate_hz": 100,
+          "lowpass_hz": 20,
+          "gravity_cutoff_hz": 0.3,
+          "filter_order": 3,
+          "gravity_representation": "vector"
+        },
+        "channel_layout": null,
+        "trainable_parameters": 672588,
+        "loss": "cross_entropy",
+        "optimizer": "AdamW",
+        "checkpoint_selection": "validation_macro_f1",
+        "scheduler": {
+          "type": "reduce_on_plateau",
+          "factor": 0.5,
+          "patience": 3,
+          "min_lr": 1e-06,
+          "active": true,
+          "monitor": "validation_loss"
+        }
+      },
+      "environment": {
+        "python": "3.11.9",
+        "python_executable": "D:\\python_envs\\imu_semg_env\\Scripts\\python.exe",
+        "torch": "2.7.0+cu128",
+        "numpy": "2.4.6",
+        "packages": {
+          "scipy": "1.17.1",
+          "h5py": "3.16.0",
+          "matplotlib": "3.11.2",
+          "opencv-python-headless": "4.14.0.94",
+          "Pillow": "12.3.0"
+        },
+        "device": "cuda",
+        "amp": true,
+        "cuda_build": "12.8",
+        "cuda_available": true,
+        "gpu_name": "NVIDIA GeForce RTX 3070",
+        "cudnn_version": 90701,
+        "deterministic_algorithms": true
+      },
+      "parameters": {
+        "epochs": 50,
+        "batch_size": 64,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "seed": 42,
+        "device": "cuda",
+        "cpu_threads": 1,
+        "deterministic": true,
+        "scheduler": {
+          "type": "reduce_on_plateau",
+          "factor": 0.5,
+          "patience": 3,
+          "min_lr": 1e-06
+        },
+        "early_stopping_patience": 10,
+        "gradient_clip_norm": 5.0,
+        "save_windows": false,
+        "num_workers": 0,
+        "amp": true
+      },
+      "split_summary": {
+        "train": {
+          "parents": 1008,
+          "examples": 1008,
+          "subjects": [
+            "1Alice",
+            "2Bingqian",
+            "3Chawki",
+            "4Chenrui",
+            "5Imad",
+            "6Jeremy",
+            "7Shushen",
+            "8Yang"
+          ],
+          "gesture_counts": {
+            "approach": 168,
+            "grasp": 168,
+            "lift": 168,
+            "move": 168,
+            "screw": 84,
+            "release": 168,
+            "insert": 84
+          },
+          "session_counts": {
+            "step4": 1008
+          }
+        },
+        "validation": {
+          "parents": 360,
+          "examples": 360,
+          "subjects": [
+            "1Alice",
+            "2Bingqian",
+            "4Chenrui",
+            "7Shushen",
+            "8Yang"
+          ],
+          "gesture_counts": {
+            "approach": 60,
+            "grasp": 60,
+            "lift": 60,
+            "move": 60,
+            "screw": 30,
+            "release": 60,
+            "insert": 30
+          },
+          "session_counts": {
+            "step4": 360
+          }
+        },
+        "test": {
+          "parents": 360,
+          "examples": 360,
+          "subjects": [
+            "1Alice",
+            "2Bingqian",
+            "3Chawki",
+            "7Shushen"
+          ],
+          "gesture_counts": {
+            "approach": 60,
+            "grasp": 60,
+            "lift": 60,
+            "move": 60,
+            "screw": 30,
+            "release": 60,
+            "insert": 30
+          },
+          "session_counts": {
+            "step4": 360
+          }
+        }
+      }
+    }
+  }
+]

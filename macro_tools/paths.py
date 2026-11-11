@@ -7,6 +7,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+from macro_tools.protocol_config import normalize_protocol
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -51,6 +52,7 @@ def experiment_run_name(modality, config, protocol, *, prepare_only=False, synth
     Full settings remain in config.json. Keep names short enough for Windows;
     unusually long names receive a content hash after truncation.
     """
+    protocol = normalize_protocol(protocol)
     video = modality in ("rgb", "depth")
     training, inputs = config.get("training") or {}, config.get("input") or {}
     defaults = {"imu": "If_ConvTransformer_W", "semg": "VisionTransformer",
@@ -61,9 +63,17 @@ def experiment_run_name(modality, config, protocol, *, prepare_only=False, synth
              "batch{}".format(training.get("batch_size", 4 if video else 64)),
              "epoch{}".format(training.get("epochs", 30)),
              protocol.get("name", protocol.get("type", "protocol"))]
+    if config.get("task", "gesture") != "gesture":
+        parts.insert(1, token(config["task"]))
     if protocol.get("type") == "grouped_percentages":
         parts.append("split" + "-".join("{:g}".format(protocol["split_percentages"][p]) for p in ("train", "validation", "test")))
         parts.append("ss{}".format(protocol.get("split_seed", training.get("seed", 42))))
+    if protocol.get("type") == "held_out_objects":
+        choices = protocol.get("test_object_ids", {})
+        objects = sorted({obj for values in choices.values() for obj in values})
+        plan = {key: protocol.get(key) for key in ("test_object_ids", "assembly_split", "source_validation")}
+        digest = hashlib.sha256(json.dumps(plan, sort_keys=True).encode()).hexdigest()[:8]
+        parts.append("objects" + "-".join(token(obj) for obj in objects) + "-" + digest)
     if protocol.get("type") in ("subject_holdout", "leave_one_subject_out"):
         from macro_tools.subject_splits import normalize_subject_protocol
         subject_protocol = normalize_subject_protocol(protocol)

@@ -154,7 +154,7 @@ def _confusion(metrics, folder, normalized=False):
     fig, ax = _figure(size, size * .85)
     maximum = 100 if normalized else max(1, max(max(row) for row in counts))
     im = ax.imshow(matrix, cmap="Blues", vmin=0, vmax=maximum)
-    colorbar = fig.colorbar(im, ax=ax, label="% within true gesture" if normalized else "Test examples", shrink=.8)
+    colorbar = fig.colorbar(im, ax=ax, label="% within true class" if normalized else "Test examples", shrink=.8)
     if not normalized:
         from matplotlib.ticker import MaxNLocator
         colorbar.locator = MaxNLocator(integer=True)
@@ -167,7 +167,7 @@ def _confusion(metrics, folder, normalized=False):
             label = "{:.1f}%".format(value) if normalized else str(value)
             ax.text(col, row, label, ha="center", va="center", fontsize=8,
                     color="white" if value > maximum * .55 else "#172033")
-    ax.set(xlabel="Predicted gesture", ylabel="True gesture",
+    ax.set(xlabel="Predicted class", ylabel="True class",
            title="Final test confusion matrix" + (" — row-normalized" if normalized else " — counts"))
     _save(fig, folder, "confusion_matrix_normalized" if normalized else "confusion_matrix")
 
@@ -182,7 +182,7 @@ def _class_plots(metrics, folder):
                [100 * metrics["per_class"][name][key] for name in names],
                width=.25, label=label, color=color)
     ax.set_xticks(range(len(names)), names, rotation=35, ha="right")
-    ax.set(ylim=(0, 105), ylabel="Score (%)", title="Final test scores by gesture")
+    ax.set(ylim=(0, 105), ylabel="Score (%)", title="Final test scores by class")
     ax.legend()
     ax.grid(axis="y", alpha=.2)
     _save(fig, folder, "per_gesture_scores")
@@ -193,7 +193,7 @@ def _class_plots(metrics, folder):
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     ax.tick_params(axis="x", rotation=35)
     ax.margins(y=.18)
-    ax.set(ylabel="Test examples", title="Test support by gesture")
+    ax.set(ylabel="Test examples", title="Test support by class")
     _save(fig, folder, "test_support")
 
 
@@ -242,7 +242,7 @@ def generate_fold_report(output_dir):
     figures = [(row[0], row[1]) for row in curves] + [
         ("confusion_matrix", "Test confusion matrix — counts"),
         ("confusion_matrix_normalized", "Test confusion matrix — percentages"),
-        ("per_gesture_scores", "Per-gesture precision, recall and F1"), ("test_support", "Test examples per gesture")]
+        ("per_gesture_scores", "Per-class precision, recall and F1"), ("test_support", "Test examples per class")]
     intro = ("Test accuracy: {:.2%} | Macro F1: {:.2%} | Weighted F1: {:.2%} | Test examples: {}\n"
              "Selected checkpoint: {} (epoch {}) | Completed epochs: {}\n"
              "Test scores are from the selected checkpoint, evaluated after training. "
@@ -250,6 +250,11 @@ def generate_fold_report(output_dir):
              "Zero-support classes have zero scores and zero normalized confusion rows. Missing historical columns are marked unavailable.").format(
         metrics["accuracy"], metrics["macro_f1"], metrics["weighted_f1"], metrics["sample_count"],
         result.get("selected_checkpoint", "unknown"), selected, result.get("epochs_completed", len(rows)))
+    if metrics.get("task") == "gesture_object":
+        intro = "Task: gesture_object. Main scores require the exact gesture-object pair.\n" + intro
+        for component, scores in metrics["component_metrics"].items():
+            intro += "\n{} component: accuracy {:.2%}, macro F1 {:.2%}.".format(
+                component.capitalize(), scores["accuracy"], scores["macro_f1"])
     _html_report(output, "Training report — " + result.get("name", output.name), intro, figures)
     return output / "report.html"
 

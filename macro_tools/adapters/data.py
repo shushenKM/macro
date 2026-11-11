@@ -15,9 +15,10 @@ import math
 import re
 import numpy as np
 from macro_tools.sources import activate_source
+from macro_tools.tasks import label_of
 
 PARTITIONS = ("train", "validation", "test")
-PROVENANCE = ("record_id", "subject_id", "session_id", "object_id", "repetition", "repetition_raw", "gesture_label", "source_file", "source_row", "macro_trial_id")
+PROVENANCE = ("record_id", "subject_id", "session_id", "object_id", "repetition", "repetition_raw", "gesture_label", "target_label", "source_file", "source_row", "macro_trial_id")
 
 
 class PreparationError(ValueError):
@@ -226,7 +227,7 @@ def _signal_folds(records, folds, dataset, config, labels, issues, manifest):
             for record in fold[part]:
                 for array, detail in windows[record["record_id"]]:
                     arrays.append(array)
-                    targets.append(labels[record["gesture_label"]])
+                    targets.append(labels[label_of(record)])
                     metadata.append(detail)
             splits[part] = dict(x=np.stack(arrays) if arrays else np.empty((0, *shape), dtype=np.float32),
                                 y=np.asarray(targets, dtype=np.int64), metadata=metadata)
@@ -258,6 +259,7 @@ def _summary(fold, splits):
         result[part] = dict(parents=len(records), examples=len(splits[part]["y"]) if isinstance(splits[part], dict) else len(splits[part]),
                            subjects=sorted({r["subject_id"] for r in records}),
                            gesture_counts=dict(Counter(r["gesture_label"] for r in records)),
+                           class_counts=dict(Counter(label_of(r) for r in records)),
                            session_counts=dict(Counter(r["session_id"] for r in records)))
     return result
 
@@ -321,9 +323,9 @@ def prepare_dataset(records, folds, dataset_config, config):
     if not root.is_dir():
         raise FileNotFoundError(root)
     assigned = _assigned(folds)
-    labels = {name: index for index, name in enumerate(sorted({r["gesture_label"] for r in assigned}))}
+    labels = {name: index for index, name in enumerate(sorted({label_of(r) for r in assigned}))}
     expected = config.get("expected_gesture_labels")
-    if expected is not None and set(expected) != set(labels):
+    if expected is not None and set(expected) != {r["gesture_label"] for r in assigned}:
         raise ValueError("Assigned gesture vocabulary differs from expected_gesture_labels")
     issues = [dict(issue, fold=fold["name"]) for fold in folds for issue in fold.get("issues", [])]
     manifest = []

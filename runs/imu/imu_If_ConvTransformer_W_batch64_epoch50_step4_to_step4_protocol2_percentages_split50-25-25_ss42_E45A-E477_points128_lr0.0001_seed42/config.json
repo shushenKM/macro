@@ -1,0 +1,310 @@
+{
+  "modality": "imu",
+  "config": {
+    "modality": "imu",
+    "dataset_config": "configs/dataset.json",
+    "model": "If_ConvTransformer_W",
+    "upstream_project": "imu/conv_transformer",
+    "sensor_ids": [
+      "E45A",
+      "E477"
+    ],
+    "subject_ids": null,
+    "session_ids": [
+      "step1",
+      "step2",
+      "step3",
+      "step4"
+    ],
+    "expected_class_count": null,
+    "expected_gesture_labels": null,
+    "preprocessing": {
+      "acceleration": "Accel_WR",
+      "target_sample_rate_hz": 100,
+      "lowpass_hz": 20,
+      "gravity_cutoff_hz": 0.3,
+      "filter_order": 3,
+      "gravity_representation": "vector"
+    },
+    "input": {
+      "num_points": 128
+    },
+    "screw_sampling": {
+      "duration_s": 1.0
+    },
+    "data_quality": {
+      "allow_cross_subject_overlap": true,
+      "excluded_record_ids": [],
+      "recording_overrides": {},
+      "allow_within_subject_test_overlap": true
+    },
+    "model_parameters": {
+      "feature_channel": 64,
+      "kernel_size": 5,
+      "kernel_size_grav": 3,
+      "scale_num": 2,
+      "feature_channel_out": 128,
+      "multiheads": 1,
+      "drop_rate": 0.2
+    },
+    "training": {
+      "epochs": 50,
+      "batch_size": 64,
+      "learning_rate": 0.0001,
+      "weight_decay": 0.001,
+      "seed": 42,
+      "device": "cuda",
+      "cpu_threads": 1,
+      "deterministic": true,
+      "scheduler": {
+        "type": "reduce_on_plateau",
+        "factor": 0.5,
+        "patience": 3,
+        "min_lr": 1e-06
+      },
+      "early_stopping_patience": 10,
+      "gradient_clip_norm": 5.0,
+      "save_windows": false,
+      "num_workers": 0,
+      "amp": true
+    },
+    "output_root": "runs/imu"
+  },
+  "dataset": {
+    "dataset_root": "../dataset",
+    "read_only": true,
+    "annotation_locale": "EN",
+    "annotation_patterns": {
+      "imu_semg": "imu_semg_gesture_segments*_{locale}.csv",
+      "rgbd": "rgb_depth_gesture_segments*_{locale}.csv"
+    },
+    "macro_repetition_grouping": "prefix",
+    "folders": {
+      "annotations": "annotation",
+      "imu": "imu",
+      "semg": "semg",
+      "rgbd": "rgbd"
+    },
+    "session_mapping": {
+      "step1": "session1",
+      "step2": "session2",
+      "step3": "session3",
+      "step4": "session4"
+    },
+    "video_recording_overrides": {}
+  },
+  "experiment": {
+    "name": "step4_to_step4",
+    "train_sessions": [
+      "step4"
+    ],
+    "test_sessions": [
+      "step4"
+    ],
+    "target_gesture_labels": [
+      "approach",
+      "grasp",
+      "lift",
+      "move",
+      "screw",
+      "release",
+      "insert"
+    ]
+  },
+  "protocol": {
+    "name": "protocol2_percentages",
+    "type": "grouped_percentages",
+    "split_before_windowing": true,
+    "split_seed": 42,
+    "split_percentages": {
+      "train": 50,
+      "validation": 25,
+      "test": 25
+    },
+    "source_validation": {
+      "strategy": "grouped_trials",
+      "fraction": 0.2
+    }
+  },
+  "status": "complete",
+  "synthetic": false,
+  "preparation": {
+    "fold_count": 1,
+    "folds": [
+      {
+        "name": "protocol2_percentages",
+        "split_summary": {
+          "train": {
+            "parents": 864,
+            "examples": 864,
+            "subjects": [
+              "1Alice",
+              "2Bingqian",
+              "4Chenrui",
+              "5Imad",
+              "6Jeremy",
+              "7Shushen",
+              "8Yang"
+            ],
+            "gesture_counts": {
+              "approach": 144,
+              "grasp": 144,
+              "lift": 144,
+              "move": 144,
+              "screw": 72,
+              "release": 144,
+              "insert": 72
+            },
+            "session_counts": {
+              "step4": 864
+            }
+          },
+          "validation": {
+            "parents": 432,
+            "examples": 432,
+            "subjects": [
+              "1Alice",
+              "2Bingqian",
+              "3Chawki",
+              "4Chenrui",
+              "8Yang"
+            ],
+            "gesture_counts": {
+              "approach": 72,
+              "grasp": 72,
+              "lift": 72,
+              "move": 72,
+              "screw": 36,
+              "release": 72,
+              "insert": 36
+            },
+            "session_counts": {
+              "step4": 432
+            }
+          },
+          "test": {
+            "parents": 432,
+            "examples": 432,
+            "subjects": [
+              "1Alice",
+              "2Bingqian",
+              "3Chawki",
+              "7Shushen"
+            ],
+            "gesture_counts": {
+              "approach": 72,
+              "grasp": 72,
+              "lift": 72,
+              "move": 72,
+              "screw": 36,
+              "release": 72,
+              "insert": 36
+            },
+            "session_counts": {
+              "step4": 432
+            }
+          }
+        },
+        "protocol": {
+          "experiment": "step4_to_step4",
+          "train_sessions": [
+            "step4"
+          ],
+          "test_sessions": [
+            "step4"
+          ],
+          "target_gesture_labels": [
+            "approach",
+            "grasp",
+            "insert",
+            "lift",
+            "move",
+            "release",
+            "screw"
+          ],
+          "seed": 42,
+          "split_before_windowing": true,
+          "macro_grouping": "subject/session/assembly_repetition_prefix",
+          "source_only_labels": [
+            "deinsert",
+            "place"
+          ],
+          "protocol": "protocol2_percentages",
+          "protocol_type": "grouped_percentages",
+          "macro_percentage_split": {
+            "requested_percentages": {
+              "train": 50,
+              "validation": 25,
+              "test": 25
+            },
+            "split_seed": 42,
+            "unit": "whole_macro_assembly",
+            "allocation": "largest_remainder_minimum_one_per_nonzero_partition",
+            "scope": "all_selected_participants_pooled",
+            "total_assemblies": 24,
+            "assembly_counts": {
+              "train": 12,
+              "validation": 6,
+              "test": 6
+            },
+            "annotation_counts": {
+              "train": 864,
+              "validation": 432,
+              "test": 432
+            },
+            "actual_assembly_percentages": {
+              "train": 50.0,
+              "validation": 25.0,
+              "test": 25.0
+            },
+            "actual_annotation_percentages": {
+              "train": 50.0,
+              "validation": 25.0,
+              "test": 25.0
+            }
+          },
+          "validation": {
+            "strategy": "macro_percentage_partition"
+          },
+          "validation_sessions": [
+            "step4"
+          ],
+          "participant_scope": "assemblies pooled across participants; not an unseen-participant protocol",
+          "step4_train_validation_used": true
+        }
+      }
+    ],
+    "warning_counts": {},
+    "label_mapping": {
+      "approach": 0,
+      "grasp": 1,
+      "insert": 2,
+      "lift": 3,
+      "move": 4,
+      "release": 5,
+      "screw": 6
+    }
+  },
+  "current_fold": null,
+  "source_versions": {
+    "imu_semg": {
+      "relative_path": "../imu_semg",
+      "git_revision": "07428e5d17a585532604e792afecbc7f1a6750bf",
+      "loaded_file_sha256": {
+        "scripts/__init__.py": "6129a086245673685571d48c27aac7867ed03e00304e92a5337dd45841e908dd",
+        "scripts/annotations.py": "cc1d239fb2ecb2a29493c453781deb734556c52e87d700ddbfdd8d9c8a6bd40d",
+        "imu/__init__.py": "d1449b6c734120f6936b2e9378e9ed4f5386b66ce788de77c85f5bbcd19bf5e5",
+        "scripts/labels.py": "a009d1772b513276b45b8a96aafe556f50d29c60aa90851260b84844cd0c2496",
+        "scripts/overlap_policy.py": "36a568cfe5c2080524a8fa19cf4354fd886fe3dea007b082557def042b7a3d1b",
+        "scripts/protocols.py": "b460c6ba19381b4616ae4509c60e353e07102a069b478a10fb863651da18a0c3",
+        "scripts/training_protocols.py": "2c1a5cd14c07c9b73e206acb7b0b7aa3152f336cdffed05e2bc7a14f95b9a342",
+        "imu/recordings.py": "7f72a428f7809f4927e4bae05dc99b3a22358b4ca7f9b9ffc85391dcc445da1e",
+        "scripts/intervals.py": "d2ad0bc5d9dc9d9fa19f9dda37d789396308d65371c086fba66440fe6e66859a",
+        "imu/preprocessing.py": "6a57fc7e9b4b0ed17f45b75458c667951bde00844650ab9be33534a2c9846220",
+        "imu/sampling.py": "2a1a5bbf758ed0a30910f381666137b0db3a223bd9e6b6028df748caf53bb24d",
+        "imu/dataset.py": "559d48b7e8fdd92c992e3fda3723183a1cbea086cf07a578a14998117de3b103",
+        "imu/model.py": "37e4862a44d65e74869110048e4e5a9e581b11f40e19355e46d29369342cbe26"
+      }
+    }
+  }
+}

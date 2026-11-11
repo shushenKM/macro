@@ -1,0 +1,55 @@
+{
+  "name": "protocol3",
+  "type": "held_out_objects",
+  "split_before_windowing": true,
+  "test_object_ids": {
+    "approach": [
+      "5"
+    ],
+    "grasp": [
+      "5"
+    ],
+    "lift": [
+      "5"
+    ],
+    "move": [
+      "5"
+    ],
+    "release": [
+      "5"
+    ],
+    "insert": [
+      "5"
+    ],
+    "screw": [
+      "2"
+    ]
+  },
+  "assembly_split": {
+    "name": "protocol3_assemblies",
+    "type": "held_out_repetitions",
+    "split_before_windowing": true,
+    "grouped_percentages": false,
+    "train_repetitions": [
+      1,
+      2
+    ],
+    "test_repetitions": [
+      3
+    ],
+    "validation": {
+      "strategy": "grouped_trials",
+      "fraction": 0.2
+    },
+    "split_percentages": {
+      "train": 70,
+      "validation": 15,
+      "test": 15
+    },
+    "split_seed": 42
+  },
+  "source_validation": {
+    "strategy": "grouped_trials",
+    "fraction": 0.2
+  }
+}

@@ -33,6 +33,7 @@ from torch.utils.data import DataLoader
 
 from macro_tools.paths import PROJECT_ROOT, write_json
 from macro_tools.metrics import validate_label_mapping, classification_metrics, format_test_report
+from macro_tools.tasks import prediction_labels
 
 
 def _output_directory(output_dir, modality=None):
@@ -272,19 +273,21 @@ def _save_test_outputs(output, samples, metrics, predictions, label_mapping):
     names = metrics["class_names"]
     with _artifact(output, "confusion_matrix.csv").open("w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["true_gesture / predicted_gesture"] + names)
+        writer.writerow(["true_class / predicted_class"] + names)
         writer.writerows([name] + row for name, row in zip(names, metrics["confusion_matrix"]))
     inverse = {value: key for key, value in label_mapping.items()}
     with _artifact(output, "predictions.csv").open("w", encoding="utf-8", newline="") as f:
         fields = ["sample_id", "parent_record_id", "subject_id", "session_id", "object_id", "repetition",
                   "target", "prediction", "target_gesture", "predicted_gesture"]
+        if metrics.get("task") == "gesture_object":
+            fields += ["target_label", "predicted_label", "target_object", "predicted_object"]
         writer = csv.DictWriter(f, fields)
         writer.writeheader()
         for sample, prediction in zip(samples, predictions):
             target = int(sample["label"])
             row = {key: sample.get(key, "") for key in fields[:6]}
-            row.update(target=target, prediction=prediction, target_gesture=inverse[target],
-                       predicted_gesture=inverse[prediction])
+            row.update(target=target, prediction=prediction,
+                       **prediction_labels(inverse[target], inverse[prediction]))
             writer.writerow(row)
 
 
@@ -408,6 +411,7 @@ def train_fold(fold, label_mapping, config, output_dir, dataset_root):
         raise ValueError("Test prediction count does not match prepared sample metadata")
     _save_test_outputs(output, samples["test"], test_metrics, predictions, label_mapping)
     result = dict(name=fold["name"], fold=fold["name"], modality=config["modality"], model=config.get("model"),
+                  task=config.get("task", "gesture"),
                   views=config.get("views"), sensor_ids=config.get("sensor_ids"), grid_ids=config.get("grid_ids"),
                   synthetic=bool(config.get("synthetic", False)), epochs_completed=len(history),
                   best_epoch=best_epoch if has_validation else len(history), selected_epoch=payload["epoch"],

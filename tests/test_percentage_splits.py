@@ -15,6 +15,32 @@ from test_splits import records
 
 
 class PercentageSplitTests(unittest.TestCase):
+    def test_unified_switch_matches_existing_modes_and_keeps_transfer_behavior(self):
+        from macro_tools.paths import read_config
+        from macro_tools.protocol_config import normalize_protocol, resolve_protocol_reference
+        unified = read_config("configs/protocols/protocol2.json")
+        self.assertIs(unified["grouped_percentages"], False)
+        original = copy.deepcopy(unified)
+        old_repetitions = {k: v for k, v in unified.items()
+                           if k not in ("grouped_percentages", "split_percentages", "split_seed", "source_validation")}
+        for experiment in ("step4_to_step4", "steps1234_to_step4", "steps123_to_step4"):
+            self.assertEqual(self.split(experiment, unified), self.split(experiment, old_repetitions))
+            switched = dict(unified, grouped_percentages=True)
+            actual = self.split(experiment, switched)
+            old = self.split(experiment)
+            for part in ("train", "validation", "test"):
+                self.assertEqual(actual[part], old[part])
+            self.assertEqual(actual["metadata"]["macro_percentage_split"], old["metadata"]["macro_percentage_split"])
+            self.assertEqual(actual["name"], "protocol2")
+            self.assertIn("split70-15-15", experiment_run_name("imu", {}, switched))
+        self.assertEqual(unified, original)
+        path, force = resolve_protocol_reference("protocol2_percentages", "configs/protocols")
+        self.assertEqual(path, "configs/protocols/protocol2.json")
+        self.assertEqual(normalize_protocol(unified, force_percentages=force)["type"], "grouped_percentages")
+        for flag in (None, "true", 1):
+            with self.assertRaisesRegex(ValueError, "grouped_percentages"):
+                self.split(protocol=dict(unified, grouped_percentages=flag))
+
     def setUp(self):
         self.records = records()
         # Fixed fixture: users can edit their experiment percentages freely.

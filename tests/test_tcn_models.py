@@ -54,7 +54,9 @@ class MacroTCNTests(unittest.TestCase):
                             if key not in ("model", "model_parameters", "upstream_project"):
                                 self.assertEqual(effective[key], value, key)
                         self.assertEqual(saved["experiment"], read_config("configs/experiments/" + experiment + ".json"))
-                        expected_protocol = read_config("configs/protocols/" + protocol + ".json")
+                        from macro_tools.protocol_config import normalize_protocol, resolve_protocol_reference
+                        protocol_file, force_percentages = resolve_protocol_reference(protocol, "configs/protocols")
+                        expected_protocol = normalize_protocol(read_config(protocol_file), force_percentages=force_percentages)
                         if protocol == "protocol1":
                             from macro_tools.subject_splits import normalize_subject_protocol
                             expected_protocol = normalize_subject_protocol(expected_protocol)

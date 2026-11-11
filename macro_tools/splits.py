@@ -1,6 +1,7 @@
 """Create source-context experiments with participant or whole-trial holdouts.
 
-The prediction target remains a micro-gesture label. Every test record is from
+The prediction target is a micro gesture or an observed step4 gesture-object
+pair. Raw gesture labels remain available to preprocessing. Every test record is from
 step4. The three experiment names control training sessions independently of the
 participant/repetition protocol. All assignments happen before windowing.
 
@@ -8,6 +9,9 @@ Protocol1 supports configurable participant counts: leave-one-subject-out folds
 or one fixed test participant group. It excludes test, validation and unused
 participants from every training session. Protocol2 can hold out named macro repetitions or shuffle complete
 assemblies into configurable percentage partitions, independent of repetition ID.
+Protocol3 first assigns complete assemblies using a nested protocol2 plan, then
+holds out configured objects within each gesture. The same held-out pairs are
+excluded from isolated-context source data in transfer experiments.
 Experiment 2 adds isolated-context data to experiment 1's training partition;
 experiment 3 uses only isolated-context training/validation, retaining the same
 step4 test population. By default, class vocabulary is the observed step4
@@ -26,6 +30,8 @@ from copy import deepcopy
 import math
 import random
 from macro_tools.subject_splits import SUBJECT_PROTOCOL_TYPES, participant_partitions
+from macro_tools.protocol_config import normalize_protocol, percentage_settings
+from macro_tools.tasks import label_of, validate_task, with_task_labels
 
 PARTS = ("train", "validation", "test")
 EXPERIMENTS = {
@@ -68,7 +74,7 @@ def _sample_source_training(assigned, percent, seed):
         groups[trial_key(record)].append(record)
     strata = defaultdict(list)
     for key, rows in groups.items():
-        signature = tuple(sorted({r["gesture_label"] for r in rows}))
+        signature = tuple(sorted({label_of(r) for r in rows}))
         strata[(rows[0]["subject_id"], rows[0]["session_id"], signature)].append(key)
     selected = set()
     rng = random.Random(seed)
@@ -101,22 +107,11 @@ def _apply_source_sampling(assigned, metadata, reasons, experiment, seed):
 
 def validate_percentage_protocol(protocol, seed=42):
     """Validate percentages of complete step4 assemblies, not individual rows."""
+    protocol = normalize_protocol(protocol)
     conflicting = {"train_repetitions", "test_repetitions", "validation"} & set(protocol)
-    if conflicting:
+    if conflicting and protocol.get("grouped_percentages") is not True:
         raise ValueError("grouped_percentages uses split_percentages and source_validation, not " + ", ".join(sorted(conflicting)))
-    percentages = protocol.get("split_percentages")
-    if not isinstance(percentages, dict) or set(percentages) != set(PARTS):
-        raise ValueError("split_percentages must contain exactly train, validation and test")
-    for part, value in percentages.items():
-        if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 100:
-            raise ValueError("split_percentages values must be finite numbers between 0 and 100")
-    if percentages["train"] <= 0 or percentages["test"] <= 0:
-        raise ValueError("split_percentages train and test must be positive")
-    if not math.isclose(sum(percentages.values()), 100.0, rel_tol=0, abs_tol=1e-8):
-        raise ValueError("split_percentages must sum to 100")
-    split_seed = protocol.get("split_seed", seed)
-    if type(split_seed) is not int or not 0 <= split_seed < 2**63:
-        raise ValueError("split_seed must be a nonnegative integer smaller than 2**63")
+    percentages, split_seed = percentage_settings(protocol, seed)
     source_validation = protocol.get("source_validation", {"strategy": "grouped_trials", "fraction": .2})
     if not isinstance(source_validation, dict) or source_validation.get("strategy", "grouped_trials") not in ("grouped_trials", "none"):
         raise ValueError("source_validation must specify grouped_trials or none")
@@ -176,7 +171,7 @@ def _validation_pool(records, labels, settings, seed):
     for record in records:
         groups[trial_key(record)].append(record)
     keys = sorted(groups)
-    classes = {key: {record["gesture_label"] for record in groups[key]} for key in keys}
+    classes = {key: {label_of(record) for record in groups[key]} for key in keys}
     choices = {label: {key for key in keys if label in classes[key]} for label in labels}
     scarce = [label for label, candidates in choices.items() if len(candidates) < 2]
     if scarce:
@@ -262,10 +257,12 @@ def _finish(name, original, assigned, metadata, labels, reasons):
             seen_groups[group]=part
         if part in ("train","test") and not fold[part]:
             raise ValueError(part + " partition is empty")
-        missing=set(labels)-{record["gesture_label"] for record in fold[part]}
+        missing=set(labels)-{label_of(record) for record in fold[part]}
         if missing and part=="train":
             raise ValueError("Training is missing target classes: " + ", ".join(sorted(missing)))
         if missing and fold[part] and part in ("validation","test"):
+            if metadata.get("task") == "gesture_object":
+                raise ValueError(part + " is missing target classes: " + ", ".join(sorted(missing)))
             fold["issues"].append(dict(code="missing_"+part+"_classes",severity="warning",
                 message="The partition has no examples for some fixed target classes",missing_classes=sorted(missing)))
     if not fold["validation"]:
@@ -273,14 +270,17 @@ def _finish(name, original, assigned, metadata, labels, reasons):
     fold["issues"].extend(_overlap_warnings(fold))
     fold["summary"]={part:dict(segments=len(fold[part]), trials=len({trial_key(r) for r in fold[part]}),
         subjects=sorted({r["subject_id"] for r in fold[part]}), sessions=sorted({r["session_id"] for r in fold[part]}),
-        gesture_counts=dict(sorted(Counter(r["gesture_label"] for r in fold[part]).items()))) for part in PARTS+("excluded",)}
+        gesture_counts=dict(sorted(Counter(r["gesture_label"] for r in fold[part]).items())),
+        class_counts=dict(sorted(Counter(label_of(r) for r in fold[part]).items()))) for part in PARTS+("excluded",)}
     fold["valid"]=True
     return fold
 
 
-def build_splits(records, experiment, protocol, seed=42):
+def build_splits(records, experiment, protocol, seed=42, task="gesture"):
     """Return macro-context folds; input records/configuration remain unchanged."""
-    records=deepcopy(list(records))
+    protocol = normalize_protocol(protocol)
+    validate_task(task, protocol)
+    records=with_task_labels(deepcopy(list(records)), task, protocol)
     if not records:
         raise ValueError("No annotation records")
     ids=[r["record_id"] for r in records]
@@ -310,12 +310,20 @@ def build_splits(records, experiment, protocol, seed=42):
     eligible=[r for r in records if r["gesture_label"] in labels]
     target=[r for r in target if r["gesture_label"] in labels]
     reasons={r["record_id"]:"gesture_outside_target_vocabulary" for r in records if r["gesture_label"] not in labels}
+    gesture_labels = labels
+    if task == "gesture_object":
+        labels = sorted({label_of(r) for r in target})
+        reasons.update({r["record_id"]: "gesture_object_outside_target_vocabulary"
+                        for r in eligible if label_of(r) not in labels})
+        eligible = [r for r in eligible if label_of(r) in labels]
     settings=deepcopy(protocol.get("validation") or {})
     protocol_name=protocol.get("name", "protocol1" if protocol.get("type") in SUBJECT_PROTOCOL_TYPES else "protocol2")
     metadata=dict(experiment=name,train_sessions=list(train_sessions),test_sessions=["step4"],
-                  target_gesture_labels=labels,seed=seed,split_before_windowing=True,
+                  task=task, target_gesture_labels=gesture_labels, target_class_labels=labels,
+                  seed=seed,split_before_windowing=True,
                   macro_grouping="subject/session/assembly_repetition_prefix",
-                  source_only_labels=sorted({r["gesture_label"] for r in records}-set(labels)))
+                  source_only_labels=sorted({r["gesture_label"] for r in records}-set(gesture_labels)),
+                  source_only_class_labels=sorted({label_of(r) for r in records}-set(labels)))
     if protocol.get("type") == "grouped_percentages":
         percentages, split_seed, source_validation = percentage_settings
         macro_parts, macro_meta = _percentage_macro_partitions(target, percentages, split_seed)
@@ -336,6 +344,10 @@ def build_splits(records, experiment, protocol, seed=42):
                     step4_train_validation_used="step4" in train_sessions)
         fold_reasons = _apply_source_sampling(assigned, meta, reasons, experiment, seed)
         return [_finish(protocol_name, records, assigned, meta, labels, fold_reasons)]
+    if protocol.get("type") == "held_out_objects":
+        from macro_tools.object_splits import build_object_split
+        return [build_object_split(records, eligible, target, labels, experiment, protocol,
+                                   metadata, reasons, seed)]
     if protocol.get("type") in SUBJECT_PROTOCOL_TYPES:
         subjects=sorted({r["subject_id"] for r in target})
         folds=[]
@@ -370,7 +382,7 @@ def build_splits(records, experiment, protocol, seed=42):
         source=[r for r in eligible if r["session_id"] in train_sessions and r["session_id"]!="step4"]
         if "step4" in train_sessions:
             pool=[r for r in target if r["repetition"] in train_reps]
-            pool_labels=sorted({r["gesture_label"] for r in pool})
+            pool_labels=sorted({label_of(r) for r in pool})
             train,validation,valmeta=_validation_pool(pool,pool_labels,settings,seed)
             train+=source
             val_sessions=["step4"]

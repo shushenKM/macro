@@ -1,6 +1,136 @@
 # Micro-gesture recognition during complete assembly activities
 
-This independent project recognizes seven micro gestures in step4 macro-activity
+## Command and parameter guide
+
+Saved runs are versioned, with checkpoint files stored through Git LFS.
+See [uploading/downloading runs](runs/README.md) for commands on each computer.
+Joint-task run names begin with `<modality>_gesture_object_<model>_batch...`.
+
+Run these commands from the `macro` repository after activating your environment.
+Commands are independent examples. Dataset/annotation files stay read-only;
+generated outputs go to `runs/<modality>/`. CLI options override config values.
+
+### Prepare, then train
+
+```powershell
+# Seven gestures, held-out objects (protocol3)
+python train_imu.py --experiment step4_to_step4 --protocol protocol3 --prepare-only
+python train_imu.py --experiment step4_to_step4 --protocol protocol3 --device cuda
+
+# Thirty gesture-object pairs, held-out assemblies (protocol2)
+python train_imu.py --task gesture_object --experiment step4_to_step4 --protocol protocol2 --prepare-only
+python train_imu.py --task gesture_object --experiment step4_to_step4 --protocol protocol2 --model tcn --sensors E45A E477 --epochs 50 --device cuda
+python train_semg.py --task gesture_object --experiment step4_to_step4 --protocol protocol2 --model tcn --grids grid1 grid2 --epochs 50 --device cuda
+python train_rgb.py --task gesture_object --experiment step4_to_step4 --protocol protocol2 --model tsm --views above --epochs 50 --device cuda --workers 4
+python train_depth.py --task gesture_object --experiment step4_to_step4 --protocol protocol2 --model mvtn --views above --epochs 50 --device cuda --workers 4
+
+# Mixed-context training, with 50% of eligible source trials from steps1-3
+python train_imu.py --task gesture_object --experiment steps1234_to_step4 --protocol protocol2 --steps123-percent 50 --device cuda
+# Transfer from steps1-3 only, using 100% of eligible source training trials
+python train_imu.py --task gesture_object --experiment steps123_to_step4 --protocol protocol2 --steps123-percent 100 --device cuda
+
+# Protocol1: eight LOSO folds with 8 participants, 6 train / 1 validation / 1 test
+python train_imu.py --task gesture_object --experiment step4_to_step4 --protocol protocol1 --train-subject-count 6 --validation-subject-count 1 --test-subject-count 1 --device cuda
+# One fixed fold with two test participants
+python train_imu.py --task gesture_object --experiment step4_to_step4 --protocol protocol1 --test-subjects 1Alice 2Bingqian --validation-subjects 3Chawki --train-subject-count 5 --device cuda
+
+# Annotation/split check only; no signal or image loading
+python train_semg.py --task gesture_object --experiment step4_to_step4 --protocol protocol2 --audit-only
+# Regenerate existing plots; replace YOUR_RUN_FOLDER
+python -m macro_tools.plots --run "runs/imu/YOUR_RUN_FOLDER"
+python train_imu.py --help
+python train_semg.py --help
+python train_rgb.py --help
+python train_depth.py --help
+```
+
+Use `--task gesture` for the original seven-class task. `gesture_object` supports
+protocol1 and both protocol2 modes. Protocol3 supports `gesture` only: its held-out
+objects would create unseen joint classes. Both tasks support all three experiments.
+Use `--model transformer` for IMU/sEMG's existing transformer, or `tsm`/`mvtn` for
+video. All four entry points support `--prepare-only` and `--audit-only`.
+Current step4 video annotations support **above**; front/left/right lack usable
+step4 intervals. The default macro video view is therefore above.
+
+### All training CLI parameters
+
+| Parameter | Meaning / choices |
+| --- | --- |
+| `--task gesture` / `gesture_object` | Default: `task` in modality config, otherwise `gesture`. |
+| `--experiment NAME` | `step4_to_step4` (default), `steps1234_to_step4`, `steps123_to_step4`; custom experiment JSON path also accepted. |
+| `--protocol NAME` | `protocol1`, `protocol2` (default), `protocol3`; custom JSON path also accepted. |
+| `--config PATH` | Modality config; defaults to `configs/imu.json`, `semg.json`, `rgb.json`, or `depth.json`. |
+| `--prepare-only` | Read/prepare recordings and validate inputs; do not optimize a model. |
+| `--audit-only` | Read annotations and build splits only; mutually exclusive with `--prepare-only`. |
+| `--steps123-percent N` | Retain 0–100% of eligible source training trials after validation selection. Transfer only; source-only training needs N > 0. Current transfer configs use 50. |
+| `--subjects ID ...` | Optional participant folder subset before splitting. |
+| `--test-subject ID` / `--test-subjects ID ...` | Protocol1 fixed test participant(s); singular/plural options are mutually exclusive. |
+| `--validation-subject ID` / `--validation-subjects ID ...` | Protocol1 fixed validation participant(s); use with fixed test IDs. |
+| `--train-subject-count N` | Protocol1 training participant count; default all remaining. |
+| `--validation-subject-count N` | Protocol1 validation participant count; default 1, zero disables validation. |
+| `--test-subject-count N` | Protocol1: 1 rotates all test participants unless fixed IDs are supplied; larger counts require fixed test IDs. |
+| `--model NAME` | IMU: `transformer`/`If_ConvTransformer_W` or `tcn`/`TCN`; sEMG: `transformer`/`VisionTransformer` or `tcn`/`TCN`; RGB/depth: `tsm` or `mvtn`. |
+| `--sensors E45A E477` | IMU only: either sensor or both, in the supplied order. |
+| `--grids grid1 grid2` | sEMG only: either 8×8 grid or both, in the supplied order. |
+| `--points N` | IMU/sEMG time points per prepared example. |
+| `--views above` | RGB/depth camera selection; accepts above/front/left/right, but requires annotated intervals. |
+| `--frames N` | RGB/depth frames per example per camera. |
+| `--image-size N` | RGB/depth square input resolution. |
+| `--epochs N` | Maximum epochs; early stopping can finish sooner. |
+| `--batch-size N` | Examples per training batch. |
+| `--device auto` / `cpu` / `cuda` / `cuda:0` | Auto selects CUDA when available. |
+| `--amp` / `--no-amp` | Enable/disable CUDA FP16 mixed precision; sEMG defaults to FP32. |
+| `--workers N` | Data-loader workers; 0 is the portable Windows default. |
+| `--run-name NAME` | Custom new folder under `runs/<modality>`; existing folders are never overwritten. |
+| `-h`, `--help` | Display options for the selected entry point. |
+
+### Settings edited in JSON
+
+| File / setting | Effect |
+| --- | --- |
+| `configs/protocols/protocol1.json`: `subject_counts`, `test_subject_ids`, `validation_subject_ids` | Participant counts and fixed holdouts; same purpose as the protocol1 CLI options. |
+| `configs/protocols/protocol2.json`: `grouped_percentages: false` | Use `train_repetitions`/`test_repetitions` (defaults 1–2 / 3) and `validation.fraction` for whole assemblies. |
+| Same file: `grouped_percentages: true` | Use `split_percentages: {"train": 70, "validation": 15, "test": 15}` and `split_seed`; repetition rules are inactive. |
+| Same file: `source_validation` | Validation of steps1–3 data for `steps123_to_step4` in percentage mode. In repetition mode, `validation` controls it. |
+| `configs/protocols/protocol3.json`: `test_object_ids` | Per-gesture fixed object choices; defaults 5 for general gestures/insert and 2 for screw. |
+| Same file: `assembly_split` | Whole-assembly repetition or percentage selection before object filtering; resulting sample percentages can differ. |
+| Same file: `source_validation` | Steps1–3 validation in the source-only protocol3 experiment. |
+| `configs/experiments/<experiment>.json`: `steps123_train_percent` | Default source percentage; overridden by `--steps123-percent`. |
+| `configs/<modality>.json`: `task` | Optional persistent task choice; default `gesture`. |
+| Same file: `training.learning_rate`, `weight_decay`, `seed`, `scheduler`, `early_stopping_patience`, `gradient_clip_norm`, `deterministic`, `cpu_threads` | Optimizer, reproducibility and stopping settings. These have no CLI flags. |
+| Same file: `model_parameters` | Architecture settings; switching `--model` selects that architecture's defaults. |
+| Same file: `preprocessing`, `channel_layout` (sEMG), `input`, `screw_sampling` | Modality-specific signal/image preparation. Changing the task does not change these. |
+| Same file: `training.save_windows` | Optional prepared-array export; false keeps output compact. |
+| Same file: `data_quality` | Existing accepted-overlap and recording-override settings. |
+| `configs/dataset.json` | Portable `../dataset` location, annotation patterns and recording folder mappings; keep `read_only: true`. |
+
+Percentage ratios must total 100; train/test must be positive and validation may
+be zero. Whole assemblies stay intact. `protocol2_percentages` remains a legacy
+alias; use `--protocol protocol2` with the boolean for new runs.
+
+### What the 30-class task does
+
+`gesture_object` uses the observed step4 pairs: five general gestures × objects
+1–5 (25), screw × objects 1–2 (2), insert × objects 3–5 (3). Labels are stored as
+`grasp::object=1`, etc. The vocabulary comes from step4 annotations; source-only
+pairs (including object6, place and deinsert) are excluded in transfer experiments.
+Raw gesture/object fields are retained for sampling and filtering. Repetitions
+are samples, not classes; their natural unequal class counts are retained.
+
+Assembly/participant groups are assigned before any windows. Every active split
+must cover all target pairs. Source sampling occurs after class filtering and
+validation, retaining whole eligible source trials and target-class coverage.
+The task does not change model architecture, optimizer, filtering or screw sampling.
+
+Main accuracy/F1 requires the **exact pair**. Reports also show gesture-only and
+object-only component scores, a 30×30 confusion matrix and per-pair support.
+`predictions.csv` contains both predicted components; checkpoints store the task
+and class mapping. Run names include `gesture_object`. Outputs stay compact:
+effective parameters/split summaries in `config.json`, results, checkpoints and plots.
+
+## Project overview
+
+This independent project recognizes seven micro gestures or 30 gesture-object pairs in step4 macro-activity
 recordings. It reuses the model architectures and read-only recording/preprocessing
 functions from sibling `imu_semg` and `rgb_d` repositories. It does not classify the
 whole assembly activity or detect gesture boundaries: input intervals come from
@@ -84,7 +214,7 @@ only if their actual interval annotations exist. Depth samples use saved RGB fra
 indices through the existing timestamps.csv mapping, not an assumed acquisition
 clock. Depth input retains uint16 values before fixed-range normalization.
 
-## Three experiments, two protocols
+## Three experiments and evaluation protocols
 
 | Experiment | Training context | Test context |
 |---|---|---|
@@ -181,10 +311,13 @@ copied signals; it preserves the user's accepted source-overlap policy.
 
 ### Protocol 2 with configurable percentages
 
-Select `--protocol protocol2_percentages` to use
-`configs/protocols/protocol2_percentages.json`:
+Use `--protocol protocol2` for either mode. In
+`configs/protocols/protocol2.json`, set `grouped_percentages` to `true` to enable
+the percentage split, or `false` (the default) to retain the repetition split.
+The relevant settings in that same file are:
 
 ```json
+"grouped_percentages": true,
 "split_percentages": {
   "train": 70,
   "validation": 15,
@@ -221,14 +354,23 @@ come from steps1–3, with the separate `source_validation.fraction` setting (de
 is never used for checkpoint selection in this source-only experiment.
 
 ```powershell
-python train_semg.py --experiment step4_to_step4 --protocol protocol2_percentages --audit-only
-python train_semg.py --experiment steps1234_to_step4 --protocol protocol2_percentages --steps123-percent 50 --grids grid1 grid2 --epochs 50 --device cuda
+python train_semg.py --experiment step4_to_step4 --protocol protocol2 --audit-only
+python train_semg.py --experiment steps1234_to_step4 --protocol protocol2 --steps123-percent 50 --grids grid1 grid2 --epochs 50 --device cuda
 ```
 
 The same protocol works for IMU, sEMG, RGB and depth. Matching annotations, subject
 selection and split settings yield matching assembly assignments. Run names
-include the requested percentages and split seed. The original `protocol2.json`
-remains available for reproducing the earlier fixed-repetition evaluation.
+include the requested percentages and split seed. Set `grouped_percentages` back
+to `false` in the same `protocol2.json` to reproduce the fixed-repetition evaluation;
+its repetition and validation settings are preserved and are inactive when the
+switch is true. Percentage mode uses `source_validation` for the source-only
+experiment, as described above.
+
+There is one configuration to maintain. The old short name
+`--protocol protocol2_percentages` remains a compatibility alias: it loads
+`configs/protocols/protocol2.json` and forces percentage mode for that invocation.
+The separate `protocol2_percentages.json` file has been removed. Short protocol
+names are resolved relative to the repository, and custom JSON paths still work.
 
 ## Begin with annotation audit, then prepare
 
@@ -402,3 +544,101 @@ grids into 64/128 electrode time series. This is standard TCN without spatial
 8x8 convolutions. It is not the separate spatial CNN-TCN architecture.
 Architecture and parameters are recorded in config.json and checkpoints, and
 TCN is included in run folder names. Outputs remain inside macro/runs/.
+
+## Protocol 3: configurable object holdout
+
+Use `--protocol protocol3` for gesture-only recognition on held-out objects.
+This runs one fixed split. It does not rotate test objects or add gesture-object
+classification. Configure the object IDs in `configs/protocols/protocol3.json`:
+
+```json
+"test_object_ids": {
+  "approach": ["5"],
+  "grasp": ["5"],
+  "lift": ["5"],
+  "move": ["5"],
+  "release": ["5"],
+  "insert": ["5"],
+  "screw": ["2"]
+}
+```
+
+Edit these lists to select other test objects. IDs are strings, as in the
+annotations. Each gesture needs at least one held-out object and one remaining
+step4 training object. General gestures allow IDs 1–5, screw 1–2, insert 3–5.
+Missing gesture rules, unknown IDs, duplicate IDs, or holding out every object
+are rejected. More than one held-out object per gesture is supported.
+
+This is **object holdout within each gesture**: for example, object 2 can train
+grasp while being held out for screw. It is not globally unseen-object testing.
+The two micro projects already expose the same `test_object_ids` setting in
+their own `configs/protocol3.json`; their basic gestures also include object 6.
+
+Every assembly contains all objects. To preserve assembly independence, this
+protocol first assigns whole assemblies, then filters their annotated rows:
+
+- Training/validation assemblies retain only non-held-out gesture-object pairs.
+- Test assemblies retain only held-out pairs.
+- Remaining rows are excluded. Their counts/reasons are saved in the compact
+  run configuration; excluded recordings are not loaded by the data adapter.
+- No included rows from one assembly can occur in more than one partition.
+
+The nested `assembly_split` settings control that first assignment:
+`grouped_percentages: false` (default) uses assembly repetitions 1–2 as the
+training/validation pool and repetition 3 as test. Validation selects complete
+assemblies from that pool using `assembly_split.validation.fraction` (0.2).
+Set `assembly_split.grouped_percentages: true` to use
+`assembly_split.split_percentages` (default 70/15/15) and `split_seed` instead.
+Those percentages describe assemblies **before object filtering**; final sample
+proportions will differ. All these settings live in protocol3.json; protocol2.json
+does not control a protocol3 run.
+
+All three experiments remain available:
+
+- `step4_to_step4`: train/validate using the retained step4 training objects.
+- `steps1234_to_step4`: add permitted steps1–3 examples to training, after
+  excluding the same held-out gesture-object pairs from that source data.
+- `steps123_to_step4`: train/validate only on permitted steps1–3 examples;
+  `source_validation` controls that validation split. Step4 training/validation
+  assemblies are unused. The step4 test examples match the other two experiments.
+
+`--steps123-percent` still subsamples eligible source training trials after
+object exclusion and validation selection. Test data never selects checkpoints
+or fits normalization. Existing accepted interval-overlap warnings remain;
+disjoint assembly/object identifiers do not guarantee independent signals when
+annotated intervals have been reused.
+
+With the current eight-participant annotations, default protocol3 settings, and
+100% of eligible steps1–3 training trials (`--steps123-percent 100` for the two
+transfer experiments), the annotation-only audit gives:
+
+| Experiment | Train | Validation | Test |
+| --- | ---: | ---: | ---: |
+| step4_to_step4 | 819 | 189 | 72 |
+| steps1234_to_step4 | 2203 | 189 | 72 |
+| steps123_to_step4 | 1095 | 289 | 72 |
+
+There are 13/3/8 assigned step4 assemblies before object filtering. Test support
+is 8 for each gesture except screw, which has 24. Counts above are parent
+annotations, not necessarily model windows; existing source screw sampling is
+unchanged. Other object choices, seeds, or selected participants change counts.
+The existing transfer experiment configs currently select 50% of source training
+trials; with those settings, the two transfer training counts are 1539 and 561,
+respectively. Their validation/test counts stay as shown in the table.
+
+From this repository:
+
+```powershell
+python train_imu.py --experiment step4_to_step4 --protocol protocol3 --audit-only
+python train_imu.py --experiment step4_to_step4 --protocol protocol3 --prepare-only
+python train_imu.py --experiment step4_to_step4 --protocol protocol3 --model tcn --device cuda
+python train_semg.py --experiment step4_to_step4 --protocol protocol3 --device cuda
+python train_rgb.py --experiment step4_to_step4 --protocol protocol3 --views above --device cuda
+python train_depth.py --experiment step4_to_step4 --protocol protocol3 --views above --device cuda
+```
+
+The current step4 video annotations provide the above view. Replace the
+experiment name for either transfer study. Existing models, filtering and
+optimization settings apply. Run names include the selected object IDs and a
+short hash of the object/assembly plan; full settings and exclusion counts stay
+in config.json. Dataset and annotation files remain read-only.

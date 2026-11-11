@@ -9,9 +9,11 @@ import argparse
 from collections import Counter
 import copy
 import sys
+from macro_tools.protocol_config import normalize_protocol, resolve_protocol_reference
 from macro_tools.paths import PROJECT_ROOT, create_run_directory, ensure_run_path, read_config, resolve_project_path, write_json
 from macro_tools.sources import source_versions
 from macro_tools.run_output import preparation_summary, save_run_error, update_run_config
+from macro_tools.tasks import TASKS, label_of, validate_task
 
 
 def _config_path(value, category):
@@ -30,10 +32,15 @@ def train(modality, *, config_path=None, experiment_path="step4_to_step4", proto
         experiment["steps123_train_percent"] = overrides["steps123_percent"]
     from macro_tools.splits import validate_steps123_percent
     validate_steps123_percent(experiment)
-    protocol = read_config(_config_path(protocol_path, "protocols"))
+    protocol_file, force_percentages = resolve_protocol_reference(protocol_path, "configs/protocols")
+    protocol = normalize_protocol(read_config(protocol_file), force_percentages=force_percentages)
+    config["task"] = validate_task(overrides.get("task") or config.get("task", "gesture"), protocol)
     if protocol.get("type") == "grouped_percentages":
         from macro_tools.splits import validate_percentage_protocol
         validate_percentage_protocol(protocol, config.get("training", {}).get("seed", 42))
+    if protocol.get("type") == "held_out_objects":
+        from macro_tools.object_splits import validate_object_protocol
+        validate_object_protocol(protocol)
     dataset = read_config(config.get("dataset_config", "configs/dataset.json"))
     if dataset.get("read_only") is not True:
         raise ValueError("dataset.read_only must remain true")
@@ -91,11 +98,20 @@ def train(modality, *, config_path=None, experiment_path="step4_to_step4", proto
         from macro_tools.annotations import load_annotations
         from macro_tools.splits import build_splits
         records = load_annotations(runtime_dataset, modality, config.get("subject_ids"))
-        folds = build_splits(records, experiment, protocol, seed=config.get("training", {}).get("seed", 42))
+        folds = build_splits(records, experiment, protocol, seed=config.get("training", {}).get("seed", 42), task=config["task"])
+        labels = sorted({label_of(r) for fold in folds for part in ("train", "validation", "test") for r in fold[part]})
+        print("Task: {} | {} classes".format(config["task"], len(labels)), flush=True)
         issues = [dict(issue, fold=fold["name"]) for fold in folds for issue in fold.get("issues", [])]
-        update_run_config(run, preparation=preparation_summary(folds, issues))
+        update_run_config(run, preparation=preparation_summary(folds, issues, {label: i for i, label in enumerate(labels)}))
         for fold in folds:
             print("{}: train={}, validation={}, test={} annotated micro gestures".format(fold["name"], *(len(fold[p]) for p in ("train", "validation", "test"))), flush=True)
+            if fold.get("metadata", {}).get("protocol_type") == "held_out_objects":
+                meta = fold["metadata"]
+                print("Held-out objects per gesture: " + ", ".join(
+                    "{}={}".format(g, "/".join(ids)) for g, ids in sorted(meta["test_object_ids"].items())), flush=True)
+                print("Assemblies before object filtering (train/validation/test): {}/{}/{} | excluded annotations: {}".format(
+                    *(meta["assembly_counts_before_object_filter"][p] for p in ("train", "validation", "test")),
+                    len(fold["excluded"])), flush=True)
             if "subject_counts" in fold.get("metadata", {}):
                 meta = fold["metadata"]
                 print("{}: participants train/validation/test {}/{}/{} | train [{}] | validation [{}] | test [{}]".format(
@@ -165,11 +181,13 @@ def train(modality, *, config_path=None, experiment_path="step4_to_step4", proto
 
 def main(modality, argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--task", choices=TASKS, help="gesture (default) or gesture_object; joint task uses protocol1/2")
     parser.add_argument("--config", dest="config_path")
     parser.add_argument("--experiment", dest="experiment_path", default="step4_to_step4", help="Experiment short name or JSON path")
-    parser.add_argument("--protocol", dest="protocol_path", default="protocol2", help="protocol1, protocol2, protocol2_percentages, or JSON path")
+    parser.add_argument("--protocol", dest="protocol_path", default="protocol2",
+                        help="protocol1, protocol2, protocol3, or JSON path")
     parser.add_argument("--steps123-percent", type=float,
-                        help="Percentage of eligible steps1-3 training trials to retain (0-100; default 100). Held-out sets stay fixed.")
+                        help="Percentage of eligible steps1-3 training trials to retain (0-100; default from experiment config). Held-out sets stay fixed.")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--prepare-only", action="store_true")
     mode.add_argument("--audit-only", action="store_true")

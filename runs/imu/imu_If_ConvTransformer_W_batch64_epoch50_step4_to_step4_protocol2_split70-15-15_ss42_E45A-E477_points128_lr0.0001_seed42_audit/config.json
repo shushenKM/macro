@@ -1,0 +1,329 @@
+{
+  "modality": "imu",
+  "config": {
+    "modality": "imu",
+    "dataset_config": "configs/dataset.json",
+    "model": "If_ConvTransformer_W",
+    "upstream_project": "imu/conv_transformer",
+    "sensor_ids": [
+      "E45A",
+      "E477"
+    ],
+    "subject_ids": null,
+    "session_ids": [
+      "step1",
+      "step2",
+      "step3",
+      "step4"
+    ],
+    "expected_class_count": null,
+    "expected_gesture_labels": null,
+    "preprocessing": {
+      "acceleration": "Accel_WR",
+      "target_sample_rate_hz": 100,
+      "lowpass_hz": 20,
+      "gravity_cutoff_hz": 0.3,
+      "filter_order": 3,
+      "gravity_representation": "vector"
+    },
+    "input": {
+      "num_points": 128
+    },
+    "screw_sampling": {
+      "duration_s": 1.0
+    },
+    "data_quality": {
+      "allow_cross_subject_overlap": true,
+      "excluded_record_ids": [],
+      "recording_overrides": {},
+      "allow_within_subject_test_overlap": true
+    },
+    "model_parameters": {
+      "feature_channel": 64,
+      "kernel_size": 5,
+      "kernel_size_grav": 3,
+      "scale_num": 2,
+      "feature_channel_out": 128,
+      "multiheads": 1,
+      "drop_rate": 0.2
+    },
+    "training": {
+      "epochs": 50,
+      "batch_size": 64,
+      "learning_rate": 0.0001,
+      "weight_decay": 0.001,
+      "seed": 42,
+      "device": "auto",
+      "cpu_threads": 1,
+      "deterministic": true,
+      "scheduler": {
+        "type": "reduce_on_plateau",
+        "factor": 0.5,
+        "patience": 3,
+        "min_lr": 1e-06
+      },
+      "early_stopping_patience": 10,
+      "gradient_clip_norm": 5.0,
+      "save_windows": false,
+      "num_workers": 0,
+      "amp": true
+    },
+    "output_root": "runs/imu"
+  },
+  "dataset": {
+    "dataset_root": "../dataset",
+    "read_only": true,
+    "annotation_locale": "EN",
+    "annotation_patterns": {
+      "imu_semg": "imu_semg_gesture_segments*_{locale}.csv",
+      "rgbd": "rgb_depth_gesture_segments*_{locale}.csv"
+    },
+    "macro_repetition_grouping": "prefix",
+    "folders": {
+      "annotations": "annotation",
+      "imu": "imu",
+      "semg": "semg",
+      "rgbd": "rgbd"
+    },
+    "session_mapping": {
+      "step1": "session1",
+      "step2": "session2",
+      "step3": "session3",
+      "step4": "session4"
+    },
+    "video_recording_overrides": {}
+  },
+  "experiment": {
+    "name": "step4_to_step4",
+    "train_sessions": [
+      "step4"
+    ],
+    "test_sessions": [
+      "step4"
+    ],
+    "target_gesture_labels": [
+      "approach",
+      "grasp",
+      "lift",
+      "move",
+      "screw",
+      "release",
+      "insert"
+    ]
+  },
+  "protocol": {
+    "name": "protocol2",
+    "split_before_windowing": true,
+    "grouped_percentages": true,
+    "split_percentages": {
+      "train": 70,
+      "validation": 15,
+      "test": 15
+    },
+    "split_seed": 42,
+    "type": "grouped_percentages",
+    "train_repetitions": [
+      1,
+      2
+    ],
+    "test_repetitions": [
+      3
+    ],
+    "validation": {
+      "strategy": "grouped_trials",
+      "fraction": 0.2
+    },
+    "source_validation": {
+      "strategy": "grouped_trials",
+      "fraction": 0.2
+    }
+  },
+  "status": "audited",
+  "synthetic": false,
+  "preparation": {
+    "fold_count": 1,
+    "folds": [
+      {
+        "name": "protocol2",
+        "split_summary": {
+          "train": {
+            "segments": 1224,
+            "trials": 17,
+            "subjects": [
+              "1Alice",
+              "2Bingqian",
+              "3Chawki",
+              "4Chenrui",
+              "5Imad",
+              "6Jeremy",
+              "7Shushen",
+              "8Yang"
+            ],
+            "sessions": [
+              "step4"
+            ],
+            "gesture_counts": {
+              "approach": 204,
+              "grasp": 204,
+              "insert": 102,
+              "lift": 204,
+              "move": 204,
+              "release": 204,
+              "screw": 102
+            }
+          },
+          "validation": {
+            "segments": 288,
+            "trials": 4,
+            "subjects": [
+              "2Bingqian",
+              "3Chawki",
+              "7Shushen"
+            ],
+            "sessions": [
+              "step4"
+            ],
+            "gesture_counts": {
+              "approach": 48,
+              "grasp": 48,
+              "insert": 24,
+              "lift": 48,
+              "move": 48,
+              "release": 48,
+              "screw": 24
+            }
+          },
+          "test": {
+            "segments": 216,
+            "trials": 3,
+            "subjects": [
+              "1Alice",
+              "2Bingqian",
+              "7Shushen"
+            ],
+            "sessions": [
+              "step4"
+            ],
+            "gesture_counts": {
+              "approach": 36,
+              "grasp": 36,
+              "insert": 18,
+              "lift": 36,
+              "move": 36,
+              "release": 36,
+              "screw": 18
+            }
+          },
+          "excluded": {
+            "segments": 2208,
+            "trials": 768,
+            "subjects": [
+              "1Alice",
+              "2Bingqian",
+              "3Chawki",
+              "4Chenrui",
+              "5Imad",
+              "6Jeremy",
+              "7Shushen",
+              "8Yang"
+            ],
+            "sessions": [
+              "step1",
+              "step2",
+              "step3"
+            ],
+            "gesture_counts": {
+              "approach": 240,
+              "deinsert": 240,
+              "grasp": 240,
+              "insert": 240,
+              "lift": 240,
+              "move": 480,
+              "place": 240,
+              "release": 240,
+              "screw": 48
+            }
+          }
+        },
+        "protocol": {
+          "experiment": "step4_to_step4",
+          "train_sessions": [
+            "step4"
+          ],
+          "test_sessions": [
+            "step4"
+          ],
+          "target_gesture_labels": [
+            "approach",
+            "grasp",
+            "insert",
+            "lift",
+            "move",
+            "release",
+            "screw"
+          ],
+          "seed": 42,
+          "split_before_windowing": true,
+          "macro_grouping": "subject/session/assembly_repetition_prefix",
+          "source_only_labels": [
+            "deinsert",
+            "place"
+          ],
+          "protocol": "protocol2",
+          "protocol_type": "grouped_percentages",
+          "macro_percentage_split": {
+            "requested_percentages": {
+              "train": 70,
+              "validation": 15,
+              "test": 15
+            },
+            "split_seed": 42,
+            "unit": "whole_macro_assembly",
+            "allocation": "largest_remainder_minimum_one_per_nonzero_partition",
+            "scope": "all_selected_participants_pooled",
+            "total_assemblies": 24,
+            "assembly_counts": {
+              "train": 17,
+              "validation": 4,
+              "test": 3
+            },
+            "annotation_counts": {
+              "train": 1224,
+              "validation": 288,
+              "test": 216
+            },
+            "actual_assembly_percentages": {
+              "train": 70.83333333333333,
+              "validation": 16.666666666666668,
+              "test": 12.5
+            },
+            "actual_annotation_percentages": {
+              "train": 70.83333333333333,
+              "validation": 16.666666666666668,
+              "test": 12.5
+            }
+          },
+          "validation": {
+            "strategy": "macro_percentage_partition"
+          },
+          "validation_sessions": [
+            "step4"
+          ],
+          "participant_scope": "assemblies pooled across participants; not an unseen-participant protocol",
+          "step4_train_validation_used": true
+        }
+      }
+    ],
+    "warning_counts": {}
+  },
+  "source_versions": {
+    "imu_semg": {
+      "relative_path": "../imu_semg",
+      "git_revision": "33ef9aa616892e8986f3ee813dd221ac22d976cd",
+      "loaded_file_sha256": {
+        "scripts/__init__.py": "6129a086245673685571d48c27aac7867ed03e00304e92a5337dd45841e908dd",
+        "scripts/annotations.py": "cc1d239fb2ecb2a29493c453781deb734556c52e87d700ddbfdd8d9c8a6bd40d"
+      }
+    }
+  }
+}
