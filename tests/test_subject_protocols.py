@@ -38,10 +38,10 @@ class SubjectProtocolTests(unittest.TestCase):
             sets.append([{r["record_id"] for r in f["test"]} for f in folds])
             for index, fold in enumerate(folds):
                 people = {part: {r["subject_id"] for r in fold[part]} for part in ("train", "validation", "test")}
-                self.assertEqual(fold["metadata"]["subject_counts"], dict(train=6, validation=1, test=1))
+                self.assertEqual(fold["metadata"]["subject_counts"], dict(train=5, validation=2, test=1))
                 self.assertFalse(people["train"] & (people["validation"] | people["test"]))
                 self.assertFalse(people["validation"] & people["test"])
-                self.assertEqual(people["validation"], {self.subjects[(index + 1) % 8]})
+                self.assertEqual(people["validation"], {self.subjects[(index + 1) % 8], self.subjects[(index + 2) % 8]})
                 expected = {"step1"} if experiment == "steps123_to_step4" else {"step4"}
                 self.assertEqual({r["session_id"] for r in fold["validation"]}, expected)
         self.assertEqual(sets[0], sets[1])

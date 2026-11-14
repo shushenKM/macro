@@ -64,6 +64,35 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result[0]["splits"]["validation"]["x"].shape, (0, 1, 9, 16))
 
     @unittest.skipUnless(importlib.util.find_spec("scipy"), "SciPy needed by sEMG preprocessing")
+    def test_semg_amplitude_limit_applies_to_step4_and_source_steps(self):
+        from macro_tools.sources import activate_source
+        activate_source("semg")
+        root = ROOT / "runs" / "invented_dataset"
+        times = np.arange(2000)/2000
+        raw = np.tile((20*np.sin(2*np.pi*120*times))[:, None], (1, 64))
+        raw[300, 0] = 38e6
+        raw.flags.writeable = False
+        recording = SimpleNamespace(path=root / "person" / "synthetic.nc", sample_rate_hz=2000,
+                                    read_interval=lambda *args: (times, raw))
+        records = [dict(record_id=session, subject_id="person", session_id=session,
+                        object_id="1", repetition=1, gesture_label="grasp",
+                        intervals={"semg": dict(start_s=0, end_s=1)})
+                   for session in ("step1", "step4")]
+        config = dict(modality="semg", grid_ids=["grid1"], input={"num_points": 16},
+                      preprocessing={"amplitude_max_uv": 25})
+        issues, manifest = [], []
+        with patch("semg.recordings.resolve_semg_recording", return_value=recording.path), \
+             patch("semg.recordings.read_semg_recording", return_value=recording):
+            windows, shape, _ = data._signal_examples(records, {"dataset_root": str(root)}, config, issues, manifest)
+        self.assertEqual(shape, (8, 16, 8))
+        self.assertEqual(set(windows), {"step1", "step4"})
+        for examples in windows.values():
+            self.assertGreaterEqual(examples[0][0].min(), 0)
+            self.assertLessEqual(examples[0][0].max(), 25)
+        self.assertEqual(sum(i["code"] == "semg_amplitude_clipped" for i in issues), 2)
+        self.assertEqual(raw[300, 0], 38e6)
+
+    @unittest.skipUnless(importlib.util.find_spec("scipy"), "SciPy needed by sEMG preprocessing")
     def test_semg_step4_short_screw_full_interval_and_grid_shape(self):
         from macro_tools.sources import activate_source
         activate_source("semg")

@@ -1,4 +1,20 @@
 {
+  "final_summary": {
+    "task": "gesture",
+    "score_scale": "fraction_0_to_1",
+    "gesture": {
+      "accuracy": 0.2795138888888889,
+      "macro_f1": 0.22795058393941092,
+      "weighted_f1": 0.24742382941079416
+    },
+    "test_examples": 576,
+    "test_loss": 14.777742478582594,
+    "name": "protocol2",
+    "selected_checkpoint": "best.pt",
+    "selected_epoch": 18,
+    "epochs_completed": 28,
+    "elapsed_s": 145.51500000000033
+  },
   "name": "protocol2",
   "fold": "protocol2",
   "modality": "semg",

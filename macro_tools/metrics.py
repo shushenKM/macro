@@ -138,12 +138,8 @@ not a confidence interval; a fixed multi-subject test group is only one fold.
         metric = result["test_metrics"]
         lines.append(row.format(result["name"], metric["sample_count"],
             *("{:.2f}".format(100 * metric[key]) for key in ("accuracy", "macro_f1", "weighted_f1"))))
-    if len(results) > 1:
-        lines.append("Equal-fold mean +/- population SD (percentage points):")
-        for key, label in (("accuracy", "Test accuracy"), ("macro_f1", "Test macro F1"), ("weighted_f1", "Test weighted F1")):
-            lines.append("{}: {:.2f}% +/- {:.2f}".format(label, 100 * aggregate[key]["mean"], 100 * aggregate[key]["std"]))
-    else:
-        lines.append("One fixed split: no cross-fold variability estimate.")
+    from macro_tools.result_summary import format_overall_summary
+    lines.append(format_overall_summary(aggregate))
     return "\n".join(lines)
 
 

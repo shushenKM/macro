@@ -35,6 +35,8 @@ def read_config(value):
 
 def write_json(path, value):
     path = ensure_run_path(path)
+    from .result_summary import prepare_json
+    value = prepare_json(path.name, value)
     path.parent.mkdir(parents=True, exist_ok=True)
     def convert(item):
         if hasattr(item, "tolist"):

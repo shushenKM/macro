@@ -151,6 +151,7 @@
     ]
   },
   "preprocessing": {
+    "amplitude_max_uv": 300,
     "bandpass_low_hz": 10,
     "bandpass_high_hz": 300,
     "notch_hz": 50,

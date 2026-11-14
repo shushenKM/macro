@@ -1,10 +1,86 @@
 # Micro-gesture recognition during complete assembly activities
 
+## sEMG amplitude limit (microvolts)
+
+Both `configs/semg.json` and `configs/semg_tcn.json` set
+`preprocessing.amplitude_max_uv: 300`. Change this positive number to adjust
+amplitude clipping independently of `bandpass_low_hz` / `bandpass_high_hz`.
+The existing frequency filters remain active.
+
+Raw signed sEMG is capped at **-300 to +300 uV before filtering**. The rectified
+activity envelope is capped at **0 to 300 uV**, including after temporal
+resampling. Values below 5 uV are kept. This happens before normalization;
+normalized model inputs are dimensionless and may be negative or exceed 300.
+Clipping keeps every sample's timing and the channel layout. It bounds corrupt
+amplitudes but does not reconstruct the underlying signal.
+
+`semg_amplitude_clipped` is a nonblocking diagnostic when raw values exceed the
+limit; the preparation summary records its count. No raw data or annotation is
+changed. Restart training to use the new preprocessing and fit fresh training
+normalization; an already-running process uses its previously prepared arrays.
+
+
+## Protocol 1 participant defaults
+
+Edit `configs/protocols/protocol1.json` (commands still use `--protocol protocol1`):
+
+```json
+"subject_counts": {"train": null, "validation": null, "test": 1},
+"validation_subject_fraction": 0.25,
+"test_subject_ids": null,
+"validation_subject_ids": null
+```
+
+- `validation: null` selects approximately 25% of the selected participants:
+  round `N * validation_subject_fraction` to the nearest integer, halves up,
+  with at least one validation participant. Eight people give **5/2/1**;
+  nine give **6/2/1** (train/validation/test).
+- `train: null` uses everyone remaining. Set explicit integers to override
+  automatic counts, for example `{"train": 4, "validation": 3, "test": 1}`.
+  `validation: 0` disables validation. Counts must leave at least one training
+  participant; invalid requests raise an error instead of silently changing them.
+- With `test: 1` and no fixed test IDs, every participant is tested once in a
+  separate LOSO fold with a fresh model. Validation takes the next available
+  participants in cyclic sorted order. The final report averages all test folds.
+- Fixed `test_subject_ids` selects one fold; set `test` to that list's length.
+  To fix validation people too, supply `validation_subject_ids`; its length is
+  used when `validation` is null, otherwise it must match the explicit count.
+  Fixed validation IDs require fixed test IDs. Legacy singular ID settings still work.
+- Protocol 1 checkpoints and early stopping use the **equal-participant mean
+  validation macro F1**: calculate macro F1 per validation person over the full
+  target vocabulary, then average. This applies to both `gesture` and
+  `gesture_object`. Epoch `validation_macro_f1` is this selection score;
+  `validation_pooled_macro_f1` preserves the pooled score. Validation loss and
+  accuracy remain pooled; loss still breaks F1 ties and controls loss-based
+  schedulers. Protocols 2 and 3 retain their existing scoring and split rules.
+
+
 ## Command and parameter guide
 
 Saved runs are versioned, with checkpoint files stored through Git LFS.
 See [uploading/downloading runs](runs/README.md) for commands on each computer.
 Joint-task run names begin with `<modality>_gesture_object_<model>_batch...`.
+
+Every fold's `result.json` begins with `final_summary`: final accuracy, macro F1,
+weighted F1, test loss/support and checkpoint details. Joint-task summaries have
+separate `gesture_object`, `gesture` and `object` scores from the same predictions.
+Confusion matrices and per-class details remain under `test_metrics` below it.
+Entries in `results.json` use the same summary-first format.
+
+`aggregate_metrics.json` begins with the mean and population standard deviation
+for all available targets across **completed test folds**, equally weighted. For
+protocol1 LOSO, this means tested participants, not objects. A fixed two-person
+test set is one fold, not two. The terminal prints the same component averages.
+JSON scores are fractions (0–1); terminal scores are percentages. The completed
+fold count is explicit so a partial run cannot be mistaken for all participants.
+
+Refresh existing summaries without retraining or changing recorded metrics:
+
+```powershell
+python -m macro_tools.result_summary --all
+# Or just one run: replace YOUR_RUN_FOLDER
+python -m macro_tools.result_summary --run "runs/imu/YOUR_RUN_FOLDER"
+```
 
 Run these commands from the `macro` repository after activating your environment.
 Commands are independent examples. Dataset/annotation files stay read-only;
@@ -67,7 +143,7 @@ step4 intervals. The default macro video view is therefore above.
 | `--test-subject ID` / `--test-subjects ID ...` | Protocol1 fixed test participant(s); singular/plural options are mutually exclusive. |
 | `--validation-subject ID` / `--validation-subjects ID ...` | Protocol1 fixed validation participant(s); use with fixed test IDs. |
 | `--train-subject-count N` | Protocol1 training participant count; default all remaining. |
-| `--validation-subject-count N` | Protocol1 validation participant count; default 1, zero disables validation. |
+| `--validation-subject-count N` | Protocol1 validation participant count; default about 25% of participants, zero disables validation. |
 | `--test-subject-count N` | Protocol1: 1 rotates all test participants unless fixed IDs are supplied; larger counts require fixed test IDs. |
 | `--model NAME` | IMU: `transformer`/`If_ConvTransformer_W` or `tcn`/`TCN`; sEMG: `transformer`/`VisionTransformer` or `tcn`/`TCN`; RGB/depth: `tsm` or `mvtn`. |
 | `--sensors E45A E477` | IMU only: either sensor or both, in the supplied order. |
@@ -234,14 +310,15 @@ Edit `configs/protocols/protocol1.json` to choose participant counts:
   "name": "protocol1",
   "split_before_windowing": true,
   "type": "subject_holdout",
-  "subject_counts": {"train": null, "validation": 1, "test": 1},
+  "subject_counts": {"train": null, "validation": null, "test": 1},
+  "validation_subject_fraction": 0.25,
   "test_subject_ids": null,
   "validation_subject_ids": null
 }
 ```
 
 - `train: null` uses all participants left after validation and test selection.
-  With eight participants the default is **6 train / 1 validation / 1 test**.
+  With eight participants the default is **5 train / 2 validation / 1 test**.
   Set an integer to use fewer training participants; unused participants are
   excluded from all partitions and listed in the saved metadata.
 - `test: 1` and `test_subject_ids: null` run **all eight leave-one-subject-out
@@ -263,10 +340,10 @@ Edit `configs/protocols/protocol1.json` to choose participant counts:
 The same options are available on the command line without editing JSON:
 
 ```powershell
-# All eight LOSO folds: 6 training, 1 validation, 1 test participant each.
+# Explicit override: all eight LOSO folds with 6 training, 1 validation, 1 test each.
 python train_imu.py --experiment step4_to_step4 --protocol protocol1 --train-subject-count 6 --validation-subject-count 1 --test-subject-count 1 --sensors E45A E477 --epochs 50 --device cuda
 
-# One fixed two-participant test set (example pair), with automatic 5/1/2 counts.
+# One fixed two-participant test set (example pair), with automatic 4/2/2 counts for eight people.
 python train_imu.py --experiment step4_to_step4 --protocol protocol1 --test-subjects 1Alice 2Bingqian --sensors E45A E477 --epochs 50 --device cuda
 
 # Inspect assignments using annotations only; no signal processing or training.

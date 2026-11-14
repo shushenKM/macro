@@ -1,5 +1,21 @@
 [
   {
+    "final_summary": {
+      "task": "gesture",
+      "score_scale": "fraction_0_to_1",
+      "gesture": {
+        "accuracy": 0.9543650793650794,
+        "macro_f1": 0.9533176232787998,
+        "weighted_f1": 0.9547964864178591
+      },
+      "test_examples": 504,
+      "test_loss": 0.16365725464291042,
+      "name": "protocol2_percentages",
+      "selected_checkpoint": "best.pt",
+      "selected_epoch": 15,
+      "epochs_completed": 25,
+      "elapsed_s": 44.51599999999962
+    },
     "name": "protocol2_percentages",
     "fold": "protocol2_percentages",
     "modality": "imu",

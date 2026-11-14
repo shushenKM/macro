@@ -4,6 +4,9 @@ One test participant with no fixed IDs runs leave-one-subject-out: every selecte
 participant is tested once with a fresh model. A fixed test_subject_ids list runs
 one fold, including when it contains two participants. subject_counts controls
 train/validation/test participant counts; null training means all remaining.
+Null validation uses validation_subject_fraction (default 0.25) of all selected
+participants, rounded to nearest integer with halves rounded up and at least
+one participant. Fixed validation IDs override this automatic count.
 
 Automatic validation takes the next available participants in cyclic sorted
 order after the first test participant. Training takes the remaining participants
@@ -12,6 +15,7 @@ every context. This deterministic assignment is shared by all modalities and
 experiments. Legacy singular test/validation settings remain supported.
 """
 from copy import deepcopy
+import math
 
 
 SUBJECT_PROTOCOL_TYPES = ("subject_holdout", "leave_one_subject_out")
@@ -50,15 +54,25 @@ def normalize_subject_protocol(protocol):
         if lists and any(value != lists[0] for value in lists):
             raise ValueError("Conflicting singular/plural " + part + " participant settings")
         ids[part] = lists[0] if lists else None
+    fraction = result.get("validation_subject_fraction", 0.25)
+    if (isinstance(fraction, bool) or not isinstance(fraction, (int, float))
+            or not math.isfinite(fraction) or not 0 < fraction < 1):
+        raise ValueError("validation_subject_fraction must be strictly between zero and one")
+    result["validation_subject_fraction"] = fraction
     counts = {"train": supplied.get("train"),
-              "validation": supplied.get("validation", 0 if legacy.get("strategy") == "none" else len(ids["validation"] or [None])),
+              "validation": supplied.get("validation"),
               "test": supplied.get("test", len(ids["test"] or [None]))}
+    if counts["validation"] is None:
+        if legacy.get("strategy") == "none":
+            counts["validation"] = 0
+        elif ids["validation"] is not None:
+            counts["validation"] = len(ids["validation"])
     for part, count in counts.items():
-        if part == "train" and count is None:
+        if part in ("train", "validation") and count is None:
             continue
         if type(count) is not int or count < (0 if part == "validation" else 1):
             raise ValueError("subject_counts.{} must be {}".format(part,
-                "a nonnegative integer" if part == "validation" else "a positive integer" + (" or null" if part == "train" else "")))
+                "a nonnegative integer or null" if part == "validation" else "a positive integer" + (" or null" if part == "train" else "")))
     if legacy.get("strategy") == "none" and counts["validation"] != 0:
         raise ValueError("validation.strategy=none conflicts with a nonzero validation subject count")
     for part in ids:
@@ -81,16 +95,20 @@ def participant_partitions(subjects, protocol):
     """Return one fixed partition or one fold per available test participant."""
     settings = normalize_subject_protocol(protocol)
     subjects = sorted(set(subjects))
-    counts = settings["subject_counts"]
+    counts = dict(settings["subject_counts"])
+    if counts["validation"] is None:
+        counts["validation"] = max(1, math.floor(len(subjects) * settings["validation_subject_fraction"] + 0.5))
+    if len(subjects) < 3 and counts["validation"] > 0:
+        raise ValueError("Participant-disjoint validation requires at least three subjects")
     train_count = counts["train"]
     if train_count is None:
         train_count = len(subjects) - counts["validation"] - counts["test"]
     if train_count < 1 or train_count + counts["validation"] + counts["test"] > len(subjects):
-        raise ValueError("Requested train/validation/test subject counts exceed the {} available step4 participants, or leave no training participant".format(len(subjects)))
+        raise ValueError("Requested train/validation/test subject counts exceed the {} available participants, or leave no training participant".format(len(subjects)))
     for part in ("test", "validation"):
         unknown = set(settings[part + "_subject_ids"] or []) - set(subjects)
         if unknown:
-            raise ValueError("Unknown step4 {} participant(s): {}".format(part, ", ".join(sorted(unknown))))
+            raise ValueError("Unknown {} subject/participant(s): {}".format(part, ", ".join(sorted(unknown))))
     test_sets = [settings["test_subject_ids"]] if settings["test_subject_ids"] else [[subject] for subject in subjects]
     partitions = []
     for test in test_sets:
@@ -104,5 +122,5 @@ def participant_partitions(subjects, protocol):
         unused = sorted(set(subjects) - set(train) - set(validation) - set(test))
         partitions.append(dict(train=sorted(train), validation=sorted(validation), test=sorted(test),
                                excluded=unused, selection=settings["subject_selection"],
-                               requested_counts=dict(counts)))
+                               requested_counts=dict(settings["subject_counts"])))
     return partitions

@@ -70,9 +70,9 @@ class SubjectCLITests(unittest.TestCase):
             self.assertEqual(aggregate["fold_count"], 8)
             self.assertAlmostEqual(aggregate["accuracy"]["mean"], .35)
             self.assertAlmostEqual(aggregate["accuracy"]["std"], .229128784747792)
-            self.assertIn("Test accuracy: 35.00% +/- 22.91", stdout.getvalue())
+            self.assertIn("35.00 +/- 22.91", stdout.getvalue())
             self.assertIn("Training fold 8/8", stdout.getvalue())
-            self.assertIn("35.00% +/- 22.91", (output / "fold_summary.txt").read_text())
+            self.assertIn("35.00 +/- 22.91", (output / "fold_summary.txt").read_text())
 
     def test_invalid_options_fail_before_annotation_reading(self):
         for arguments in (["--test-subject-count", "2"],
@@ -96,7 +96,7 @@ class SubjectCLITests(unittest.TestCase):
                      subject_config(test_subject_ids=["c", "d"])]
         names = [experiment_run_name("imu", {}, protocol) for protocol in protocols]
         self.assertEqual(len(set(names)), 4)
-        self.assertIn("subjectsauto-1-1_loso", names[0])
+        self.assertIn("subjectsauto-auto-1_loso", names[0])
         self.assertIn("test-a-b", names[2])
 
     def test_equal_fold_mean_is_not_pooled_sample_accuracy(self):
@@ -105,8 +105,8 @@ class SubjectCLITests(unittest.TestCase):
         aggregate = aggregate_fold_metrics(metrics)
         self.assertEqual(aggregate["accuracy"], dict(mean=.75, std=.25))
         results = [dict(name=str(i), test_metrics=m) for i, m in enumerate(metrics)]
-        self.assertIn("Test accuracy: 75.00% +/- 25.00", format_fold_summary(results, aggregate))
-        self.assertIn("One fixed split", format_fold_summary(results[:1]))
+        self.assertIn("75.00 +/- 25.00", format_fold_summary(results, aggregate))
+        self.assertIn("One completed fold", format_fold_summary(results[:1]))
 
 
 if __name__ == "__main__":

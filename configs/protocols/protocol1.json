@@ -4,9 +4,10 @@
   "type": "subject_holdout",
   "subject_counts": {
     "train": null,
-    "validation": 1,
+    "validation": null,
     "test": 1
   },
   "test_subject_ids": null,
-  "validation_subject_ids": null
+  "validation_subject_ids": null,
+  "validation_subject_fraction": 0.25
 }
