@@ -1,0 +1,349 @@
+[
+  {
+    "final_summary": {
+      "task": "gesture",
+      "score_scale": "fraction_0_to_1",
+      "gesture": {
+        "accuracy": 0.7777777777777778,
+        "macro_f1": 0.7665779170975318,
+        "weighted_f1": 0.772783074798943
+      },
+      "test_examples": 216,
+      "test_loss": 0.9815691312154134,
+      "name": "protocol1_1Alice",
+      "selected_checkpoint": "best.pt",
+      "selected_epoch": 41,
+      "epochs_completed": 50,
+      "elapsed_s": 16.67200000002049
+    },
+    "name": "protocol1_1Alice",
+    "fold": "protocol1_1Alice",
+    "modality": "imu",
+    "model": "TCN",
+    "task": "gesture",
+    "views": null,
+    "sensor_ids": [
+      "E477"
+    ],
+    "grid_ids": null,
+    "synthetic": false,
+    "epochs_completed": 50,
+    "best_epoch": 41,
+    "selected_epoch": 41,
+    "selected_checkpoint": "best.pt",
+    "selection": "validation_subject_mean_macro_f1",
+    "elapsed_s": 16.67200000002049,
+    "test_metrics": {
+      "accuracy": 0.7777777777777778,
+      "macro_f1": 0.7665779170975318,
+      "weighted_f1": 0.772783074798943,
+      "per_class": {
+        "approach": {
+          "index": 0,
+          "precision": 0.84375,
+          "recall": 0.75,
+          "f1": 0.7941176470588235,
+          "support": 36
+        },
+        "grasp": {
+          "index": 1,
+          "precision": 0.6923076923076923,
+          "recall": 0.75,
+          "f1": 0.7199999999999999,
+          "support": 36
+        },
+        "insert": {
+          "index": 2,
+          "precision": 0.6923076923076923,
+          "recall": 0.5,
+          "f1": 0.5806451612903226,
+          "support": 18
+        },
+        "lift": {
+          "index": 3,
+          "precision": 0.7948717948717948,
+          "recall": 0.8611111111111112,
+          "f1": 0.8266666666666667,
+          "support": 36
+        },
+        "move": {
+          "index": 4,
+          "precision": 0.8461538461538461,
+          "recall": 0.9166666666666666,
+          "f1": 0.8799999999999999,
+          "support": 36
+        },
+        "release": {
+          "index": 5,
+          "precision": 0.7419354838709677,
+          "recall": 0.6388888888888888,
+          "f1": 0.6865671641791045,
+          "support": 36
+        },
+        "screw": {
+          "index": 6,
+          "precision": 0.782608695652174,
+          "recall": 1.0,
+          "f1": 0.878048780487805,
+          "support": 18
+        }
+      },
+      "confusion_matrix": [
+        [
+          27,
+          1,
+          0,
+          3,
+          0,
+          4,
+          1
+        ],
+        [
+          5,
+          27,
+          1,
+          0,
+          0,
+          3,
+          0
+        ],
+        [
+          0,
+          7,
+          9,
+          0,
+          1,
+          1,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          31,
+          4,
+          0,
+          1
+        ],
+        [
+          0,
+          0,
+          2,
+          0,
+          33,
+          0,
+          1
+        ],
+        [
+          0,
+          4,
+          1,
+          5,
+          1,
+          23,
+          2
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          18
+        ]
+      ],
+      "class_names": [
+        "approach",
+        "grasp",
+        "insert",
+        "lift",
+        "move",
+        "release",
+        "screw"
+      ],
+      "sample_count": 216,
+      "loss": 0.9815691312154134
+    },
+    "training_details": {
+      "model": {
+        "name": "TCN",
+        "class_name": "LogitsModel",
+        "model_parameters": {
+          "channels": [
+            64,
+            64,
+            64,
+            64,
+            64,
+            64
+          ],
+          "kernel_size": 3,
+          "dropout": 0.2
+        },
+        "modality": "imu",
+        "views": null,
+        "sensor_ids": [
+          "E477"
+        ],
+        "grid_ids": null,
+        "input": {
+          "num_points": 128
+        },
+        "preprocessing": {
+          "acceleration": "Accel_WR",
+          "target_sample_rate_hz": 100,
+          "lowpass_hz": 20,
+          "gravity_cutoff_hz": 0.3,
+          "filter_order": 3,
+          "gravity_representation": "vector"
+        },
+        "channel_layout": null,
+        "trainable_parameters": 139527,
+        "loss": "cross_entropy",
+        "optimizer": "AdamW",
+        "checkpoint_selection": "validation_subject_mean_macro_f1",
+        "scheduler": {
+          "type": "reduce_on_plateau",
+          "factor": 0.5,
+          "patience": 3,
+          "min_lr": 1e-06,
+          "active": true,
+          "monitor": "validation_loss"
+        }
+      },
+      "environment": {
+        "python": "3.11.9",
+        "python_executable": "D:\\python_envs\\imu_semg_env\\Scripts\\python.exe",
+        "torch": "2.14.1+cu126",
+        "numpy": "2.4.6",
+        "packages": {
+          "scipy": "1.17.1",
+          "h5py": "3.16.0",
+          "matplotlib": "3.11.2",
+          "opencv-python": "5.0.0.93",
+          "Pillow": "12.3.0"
+        },
+        "device": "cuda",
+        "amp": true,
+        "cuda_build": "12.6",
+        "cuda_available": true,
+        "gpu_name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+        "cudnn_version": 91002,
+        "deterministic_algorithms": true
+      },
+      "parameters": {
+        "epochs": 50,
+        "batch_size": 64,
+        "learning_rate": 0.0001,
+        "weight_decay": 0.001,
+        "seed": 42,
+        "device": "cuda",
+        "cpu_threads": 1,
+        "deterministic": true,
+        "scheduler": {
+          "type": "reduce_on_plateau",
+          "factor": 0.5,
+          "patience": 3,
+          "min_lr": 1e-06
+        },
+        "early_stopping_patience": 10,
+        "gradient_clip_norm": 5.0,
+        "save_windows": false,
+        "num_workers": 0,
+        "amp": true
+      },
+      "split_summary": {
+        "train": {
+          "parents": 1080,
+          "examples": 1080,
+          "subjects": [
+            "4Chenrui",
+            "5Imad",
+            "6Jeremy",
+            "7Shushen",
+            "8Yang"
+          ],
+          "gesture_counts": {
+            "approach": 180,
+            "grasp": 180,
+            "lift": 180,
+            "move": 180,
+            "screw": 90,
+            "release": 180,
+            "insert": 90
+          },
+          "class_counts": {
+            "approach": 180,
+            "grasp": 180,
+            "lift": 180,
+            "move": 180,
+            "screw": 90,
+            "release": 180,
+            "insert": 90
+          },
+          "session_counts": {
+            "step4": 1080
+          }
+        },
+        "validation": {
+          "parents": 432,
+          "examples": 432,
+          "subjects": [
+            "2Bingqian",
+            "3Chawki"
+          ],
+          "gesture_counts": {
+            "approach": 72,
+            "grasp": 72,
+            "lift": 72,
+            "move": 72,
+            "screw": 36,
+            "release": 72,
+            "insert": 36
+          },
+          "class_counts": {
+            "approach": 72,
+            "grasp": 72,
+            "lift": 72,
+            "move": 72,
+            "screw": 36,
+            "release": 72,
+            "insert": 36
+          },
+          "session_counts": {
+            "step4": 432
+          }
+        },
+        "test": {
+          "parents": 216,
+          "examples": 216,
+          "subjects": [
+            "1Alice"
+          ],
+          "gesture_counts": {
+            "approach": 36,
+            "grasp": 36,
+            "lift": 36,
+            "move": 36,
+            "screw": 18,
+            "release": 36,
+            "insert": 18
+          },
+          "class_counts": {
+            "approach": 36,
+            "grasp": 36,
+            "lift": 36,
+            "move": 36,
+            "screw": 18,
+            "release": 36,
+            "insert": 18
+          },
+          "session_counts": {
+            "step4": 216
+          }
+        }
+      }
+    }
+  }
+]

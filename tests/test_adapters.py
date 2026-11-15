@@ -1,5 +1,6 @@
 """Check macro adapters without source writes or large training jobs."""
 import importlib.util
+import json
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -64,9 +65,11 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(result[0]["splits"]["validation"]["x"].shape, (0, 1, 9, 16))
 
     @unittest.skipUnless(importlib.util.find_spec("scipy"), "SciPy needed by sEMG preprocessing")
-    def test_semg_amplitude_limit_applies_to_step4_and_source_steps(self):
+    def test_semg_shared_processing_without_amplitude_clipping(self):
         from macro_tools.sources import activate_source
         activate_source("semg")
+        from semg.dataset import _examples
+        from semg.preprocessing import _settings, preprocess_segment
         root = ROOT / "runs" / "invented_dataset"
         times = np.arange(2000)/2000
         raw = np.tile((20*np.sin(2*np.pi*120*times))[:, None], (1, 64))
@@ -78,18 +81,24 @@ class AdapterTests(unittest.TestCase):
                         object_id="1", repetition=1, gesture_label="grasp",
                         intervals={"semg": dict(start_s=0, end_s=1)})
                    for session in ("step1", "step4")]
-        config = dict(modality="semg", grid_ids=["grid1"], input={"num_points": 16},
-                      preprocessing={"amplitude_max_uv": 25})
-        issues, manifest = [], []
-        with patch("semg.recordings.resolve_semg_recording", return_value=recording.path), \
-             patch("semg.recordings.read_semg_recording", return_value=recording):
-            windows, shape, _ = data._signal_examples(records, {"dataset_root": str(root)}, config, issues, manifest)
-        self.assertEqual(shape, (8, 16, 8))
-        self.assertEqual(set(windows), {"step1", "step4"})
-        for examples in windows.values():
-            self.assertGreaterEqual(examples[0][0].min(), 0)
-            self.assertLessEqual(examples[0][0].max(), 25)
-        self.assertEqual(sum(i["code"] == "semg_amplitude_clipped" for i in issues), 2)
+        for filename in ("semg.json", "semg_tcn.json"):
+            with self.subTest(config=filename):
+                config = json.loads((ROOT / "configs" / filename).read_text())
+                self.assertNotIn("amplitude_max_uv", config["preprocessing"])
+                _settings(config["preprocessing"])
+                config.update(grid_ids=["grid1"], input={"num_points": 16})
+                expected_segment = preprocess_segment(recording, 0, 1, list(range(64)), config["preprocessing"])
+                issues, manifest = [], []
+                with patch("semg.recordings.resolve_semg_recording", return_value=recording.path), \
+                     patch("semg.recordings.read_semg_recording", return_value=recording):
+                    windows, shape, _ = data._signal_examples(records, {"dataset_root": str(root)}, config, issues, manifest)
+                self.assertEqual(shape, (8, 16, 8))
+                self.assertEqual(set(windows), {"step1", "step4"})
+                for record in records:
+                    expected = _examples(record, expected_segment, ["grid1"], config["channel_layout"], 16, 1, 1, "error")
+                    np.testing.assert_array_equal(windows[record["record_id"]][0][0], expected[0][0])
+                    self.assertGreater(windows[record["record_id"]][0][0].max(), 300)
+                self.assertFalse(any(i["code"] == "semg_amplitude_clipped" for i in issues))
         self.assertEqual(raw[300, 0], 38e6)
 
     @unittest.skipUnless(importlib.util.find_spec("scipy"), "SciPy needed by sEMG preprocessing")

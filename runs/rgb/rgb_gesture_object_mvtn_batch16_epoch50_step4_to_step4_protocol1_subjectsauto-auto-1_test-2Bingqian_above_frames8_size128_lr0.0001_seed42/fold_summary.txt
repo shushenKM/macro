@@ -1,0 +1,12 @@
+
+Final summary: 1 completed training fold(s)
+Fold                 Examples    Accuracy %    Macro F1 %  Weighted F1 %
+protocol1_2Bingqian       216         81.02         81.33         80.65
+
+Final summary: 1 completed test fold(s)
+Equal-fold mean +/- population SD (percentage points):
+Target                      Accuracy %             Macro F1 %          Weighted F1 %
+gesture_object          81.02 +/- 0.00         81.33 +/- 0.00         80.65 +/- 0.00
+gesture                 92.59 +/- 0.00         90.43 +/- 0.00         92.43 +/- 0.00
+object                  86.57 +/- 0.00         88.10 +/- 0.00         86.47 +/- 0.00
+One completed fold: SD is zero; this is not an all-participant average.

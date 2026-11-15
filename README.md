@@ -1,23 +1,28 @@
 # Micro-gesture recognition during complete assembly activities
 
-## sEMG amplitude limit (microvolts)
+## Shared sEMG and RGB/depth processing
 
-Both `configs/semg.json` and `configs/semg_tcn.json` set
-`preprocessing.amplitude_max_uv: 300`. Change this positive number to adjust
-amplitude clipping independently of `bandpass_low_hz` / `bandpass_high_hz`.
-The existing frequency filters remain active.
+Macro reads preprocessing parameters from its own `configs/` files. It reuses
+the sibling projects' processing code; editing their JSON files does not change
+macro's settings. Relative sibling paths work on both computers.
 
-Raw signed sEMG is capped at **-300 to +300 uV before filtering**. The rectified
-activity envelope is capped at **0 to 300 uV**, including after temporal
-resampling. Values below 5 uV are kept. This happens before normalization;
-normalized model inputs are dimensionless and may be negative or exceed 300.
-Clipping keeps every sample's timing and the channel layout. It bounds corrupt
-amplitudes but does not reconstruct the underlying signal.
+sEMG uses `imu_semg/semg/preprocessing.py` directly, with no upper amplitude
+clipping. `amplitude_max_uv` is not a supported setting and is absent from both
+`configs/semg.json` and `configs/semg_tcn.json`. Macro's existing bandpass remains
+10–300 Hz; the current `imu_semg` defaults are 20–450 Hz. The processing code is
+shared, while each project's configuration selects the filter frequencies.
 
-`semg_amplitude_clipped` is a nonblocking diagnostic when raw values exceed the
-limit; the preparation summary records its count. No raw data or annotation is
-changed. Restart training to use the new preprocessing and fit fresh training
-normalization; an already-running process uses its previously prepared arrays.
+| Modality | Processing used by macro | Macro settings |
+| --- | --- | --- |
+| sEMG | Bandpass; optional notch; rectification; envelope lowpass; anti-aliased resampling; interpolation to fixed points; normalization fitted on training examples only | `configs/semg.json`: `preprocessing`, `input.num_points`, `channel_layout` |
+| RGB | Shared temporal frame sampling, RGB conversion, resizing, division by 255 and fixed ImageNet mean/std | `configs/rgb.json`: `input.num_frames`, `input.image_size`, `views` |
+| Depth | Shared RGB-to-depth index mapping through `timestamps.csv`, uint16 decoding, nearest-neighbour resizing, configured clipping/scaling; missing zero pixels remain zero | `configs/depth.json`: `input.num_frames`, `input.image_size`, `input.depth_min`, `input.depth_max`, `views` |
+
+Step4 uses each complete annotated micro-gesture as one example, including
+screw. Steps1–3 retain their existing screw excerpt sampling. sEMG uses the
+shared processing in both contexts and both signal architectures. RGB/depth use the
+same processing for TSM and MVTN. No new image processing options are required
+to enable the shared pipeline.
 
 
 ## Protocol 1 participant defaults

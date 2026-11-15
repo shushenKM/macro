@@ -1,0 +1,360 @@
+{
+  "final_summary": {
+    "task": "gesture",
+    "score_scale": "fraction_0_to_1",
+    "gesture": {
+      "accuracy": 0.9722222222222222,
+      "macro_f1": 0.9682730234951124,
+      "weighted_f1": 0.9707883153261305
+    },
+    "test_examples": 72,
+    "test_loss": 0.06856658889187707,
+    "name": "protocol3",
+    "selected_checkpoint": "best.pt",
+    "selected_epoch": 22,
+    "epochs_completed": 32,
+    "elapsed_s": 87.5930000001099
+  },
+  "name": "protocol3",
+  "fold": "protocol3",
+  "modality": "imu",
+  "model": "If_ConvTransformer_W",
+  "task": "gesture",
+  "views": null,
+  "sensor_ids": [
+    "E45A",
+    "E477"
+  ],
+  "grid_ids": null,
+  "synthetic": false,
+  "epochs_completed": 32,
+  "best_epoch": 22,
+  "selected_epoch": 22,
+  "selected_checkpoint": "best.pt",
+  "selection": "validation_macro_f1",
+  "elapsed_s": 87.5930000001099,
+  "test_metrics": {
+    "accuracy": 0.9722222222222222,
+    "macro_f1": 0.9682730234951124,
+    "weighted_f1": 0.9707883153261305,
+    "per_class": {
+      "approach": {
+        "index": 0,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "grasp": {
+        "index": 1,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "insert": {
+        "index": 2,
+        "precision": 0.8888888888888888,
+        "recall": 1.0,
+        "f1": 0.9411764705882353,
+        "support": 8
+      },
+      "lift": {
+        "index": 3,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "move": {
+        "index": 4,
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0,
+        "support": 8
+      },
+      "release": {
+        "index": 5,
+        "precision": 1.0,
+        "recall": 0.75,
+        "f1": 0.8571428571428571,
+        "support": 8
+      },
+      "screw": {
+        "index": 6,
+        "precision": 0.96,
+        "recall": 1.0,
+        "f1": 0.9795918367346939,
+        "support": 24
+      }
+    },
+    "confusion_matrix": [
+      [
+        8,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        8,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        8,
+        0,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        8,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        8,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        1,
+        0,
+        0,
+        6,
+        1
+      ],
+      [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        24
+      ]
+    ],
+    "class_names": [
+      "approach",
+      "grasp",
+      "insert",
+      "lift",
+      "move",
+      "release",
+      "screw"
+    ],
+    "sample_count": 72,
+    "loss": 0.06856658889187707
+  },
+  "training_details": {
+    "model": {
+      "name": "If_ConvTransformer_W",
+      "class_name": "LogitsModel",
+      "model_parameters": {
+        "feature_channel": 64,
+        "kernel_size": 5,
+        "kernel_size_grav": 3,
+        "scale_num": 2,
+        "feature_channel_out": 128,
+        "multiheads": 1,
+        "drop_rate": 0.2
+      },
+      "modality": "imu",
+      "views": null,
+      "sensor_ids": [
+        "E45A",
+        "E477"
+      ],
+      "grid_ids": null,
+      "input": {
+        "num_points": 128
+      },
+      "preprocessing": {
+        "acceleration": "Accel_WR",
+        "target_sample_rate_hz": 100,
+        "lowpass_hz": 20,
+        "gravity_cutoff_hz": 0.3,
+        "filter_order": 3,
+        "gravity_representation": "vector"
+      },
+      "channel_layout": null,
+      "trainable_parameters": 672588,
+      "loss": "cross_entropy",
+      "optimizer": "AdamW",
+      "checkpoint_selection": "validation_macro_f1",
+      "scheduler": {
+        "type": "reduce_on_plateau",
+        "factor": 0.5,
+        "patience": 3,
+        "min_lr": 1e-06,
+        "active": true,
+        "monitor": "validation_loss"
+      }
+    },
+    "environment": {
+      "python": "3.11.9",
+      "python_executable": "D:\\python_envs\\imu_semg_env\\Scripts\\python.exe",
+      "torch": "2.14.1+cu126",
+      "numpy": "2.4.6",
+      "packages": {
+        "scipy": "1.17.1",
+        "h5py": "3.16.0",
+        "matplotlib": "3.11.2",
+        "opencv-python": "5.0.0.93",
+        "Pillow": "12.3.0"
+      },
+      "device": "cuda",
+      "amp": true,
+      "cuda_build": "12.6",
+      "cuda_available": true,
+      "gpu_name": "NVIDIA RTX 2000 Ada Generation Laptop GPU",
+      "cudnn_version": 91002,
+      "deterministic_algorithms": true
+    },
+    "parameters": {
+      "epochs": 50,
+      "batch_size": 64,
+      "learning_rate": 0.0001,
+      "weight_decay": 0.001,
+      "seed": 42,
+      "device": "cuda",
+      "cpu_threads": 1,
+      "deterministic": true,
+      "scheduler": {
+        "type": "reduce_on_plateau",
+        "factor": 0.5,
+        "patience": 3,
+        "min_lr": 1e-06
+      },
+      "early_stopping_patience": 10,
+      "gradient_clip_norm": 5.0,
+      "save_windows": false,
+      "num_workers": 0,
+      "amp": true
+    },
+    "split_summary": {
+      "train": {
+        "parents": 1539,
+        "examples": 1735,
+        "subjects": [
+          "1Alice",
+          "2Bingqian",
+          "3Chawki",
+          "4Chenrui",
+          "5Imad",
+          "6Jeremy",
+          "7Shushen",
+          "8Yang"
+        ],
+        "gesture_counts": {
+          "approach": 247,
+          "grasp": 247,
+          "lift": 247,
+          "move": 351,
+          "screw": 55,
+          "release": 247,
+          "insert": 145
+        },
+        "class_counts": {
+          "approach": 247,
+          "grasp": 247,
+          "lift": 247,
+          "move": 351,
+          "screw": 55,
+          "release": 247,
+          "insert": 145
+        },
+        "session_counts": {
+          "step4": 819,
+          "step1": 312,
+          "step2": 312,
+          "step3": 96
+        }
+      },
+      "validation": {
+        "parents": 189,
+        "examples": 189,
+        "subjects": [
+          "3Chawki",
+          "4Chenrui",
+          "5Imad"
+        ],
+        "gesture_counts": {
+          "approach": 33,
+          "grasp": 33,
+          "lift": 33,
+          "move": 33,
+          "screw": 9,
+          "release": 33,
+          "insert": 15
+        },
+        "class_counts": {
+          "approach": 33,
+          "grasp": 33,
+          "lift": 33,
+          "move": 33,
+          "screw": 9,
+          "release": 33,
+          "insert": 15
+        },
+        "session_counts": {
+          "step4": 189
+        }
+      },
+      "test": {
+        "parents": 72,
+        "examples": 72,
+        "subjects": [
+          "1Alice",
+          "2Bingqian",
+          "3Chawki",
+          "4Chenrui",
+          "5Imad",
+          "6Jeremy",
+          "7Shushen",
+          "8Yang"
+        ],
+        "gesture_counts": {
+          "screw": 24,
+          "approach": 8,
+          "grasp": 8,
+          "lift": 8,
+          "move": 8,
+          "insert": 8,
+          "release": 8
+        },
+        "class_counts": {
+          "screw": 24,
+          "approach": 8,
+          "grasp": 8,
+          "lift": 8,
+          "move": 8,
+          "insert": 8,
+          "release": 8
+        },
+        "session_counts": {
+          "step4": 72
+        }
+      }
+    }
+  }
+}

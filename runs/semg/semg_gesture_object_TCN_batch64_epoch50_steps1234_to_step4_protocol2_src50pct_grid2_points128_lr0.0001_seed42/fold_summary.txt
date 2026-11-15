@@ -1,0 +1,12 @@
+
+Final summary: 1 completed training fold(s)
+Fold       Examples    Accuracy %    Macro F1 %  Weighted F1 %
+protocol2       576         13.19          8.42         10.17
+
+Final summary: 1 completed test fold(s)
+Equal-fold mean +/- population SD (percentage points):
+Target                      Accuracy %             Macro F1 %          Weighted F1 %
+gesture_object          13.19 +/- 0.00          8.42 +/- 0.00         10.17 +/- 0.00
+gesture                 31.42 +/- 0.00         32.23 +/- 0.00         30.26 +/- 0.00
+object                  29.86 +/- 0.00         22.34 +/- 0.00         26.71 +/- 0.00
+One completed fold: SD is zero; this is not an all-participant average.

@@ -1,0 +1,4 @@
+{
+  "error_type": "PermissionError",
+  "message": "[WinError 5] Accès refusé: 'D:\\\\Manipulative_dataset\\\\macro\\\\runs\\\\imu\\\\imu_gesture_object_TCN_batch64_epoch50_step4_to_step4_protocol1_subjectsauto-auto-1_test-1Alice_E45A_points128_lr0.0001_seed42\\\\protocol1_1Alice\\\\last.pt.tmp' -> 'D:\\\\Manipulative_dataset\\\\macro\\\\runs\\\\imu\\\\imu_gesture_object_TCN_batch64_epoch50_step4_to_step4_protocol1_subjectsauto-auto-1_test-1Alice_E45A_points128_lr0.0001_seed42\\\\protocol1_1Alice\\\\last.pt'"
+}

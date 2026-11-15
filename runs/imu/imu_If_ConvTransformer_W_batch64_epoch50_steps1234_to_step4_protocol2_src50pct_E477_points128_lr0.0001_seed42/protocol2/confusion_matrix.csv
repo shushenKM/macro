@@ -1,0 +1,8 @@
+true_class / predicted_class,approach,grasp,insert,lift,move,release,screw
+approach,85,5,0,1,2,3,0
+grasp,3,84,2,1,1,5,0
+insert,5,3,35,0,3,2,0
+lift,0,0,0,92,0,4,0
+move,1,0,1,2,92,0,0
+release,2,3,2,0,4,85,0
+screw,0,0,0,0,0,0,48
