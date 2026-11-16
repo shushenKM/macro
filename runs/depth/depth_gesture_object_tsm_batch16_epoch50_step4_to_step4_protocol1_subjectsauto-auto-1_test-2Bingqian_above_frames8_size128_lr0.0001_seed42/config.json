@@ -115,7 +115,7 @@
     "validation_subject_fraction": 0.25,
     "subject_selection": "fixed"
   },
-  "status": "training",
+  "status": "complete",
   "synthetic": false,
   "preparation": {
     "fold_count": 1,
@@ -425,5 +425,26 @@
       "screw::object=2": 29
     }
   },
-  "current_fold": "protocol1_2Bingqian"
+  "current_fold": null,
+  "source_versions": {
+    "rgb_d": {
+      "relative_path": "../rgb_d",
+      "git_revision": "e5249f4b6db185cd816afb76d696d00a5e9b1905",
+      "loaded_file_sha256": {
+        "scripts/__init__.py": "927de8881b49aa7f4be1869d37ef9d8025da8f14241554a0156c873c6e26b1a1",
+        "scripts/rgbd_annotations.py": "90fd964d8b54bde1f6b58780311c677fb694927d1fb52cdb1bbf71794624ddaf",
+        "vision/__init__.py": "71e961aa880cb94b3a06f84fdd8ad56cc084ab35dbe86e3271331b18e544ae96",
+        "scripts/labels.py": "948ac9dfeef099f5b30d681ab08eaf82c71b6631c369e2162b3df6c610cbbd59",
+        "scripts/tasks.py": "4710275d06bf17d2050c1c9c29a56f2d09683f87f61cd66cce1bb655ddbd29bf",
+        "scripts/protocols.py": "284c9fc0ecd035da02024ddbdb9467d97ce7414d63d4fd76fd9446d46a347c0d",
+        "scripts/protocol_config.py": "07ece8cc88c78fac7fc1aa8ef287e417f15b68ee3bf01f2e281a3a481a970f89",
+        "scripts/subject_splits.py": "eb6b2996eae7e1bc5ad6008cf481a7faf935bbdedbd68c3fbccbda6be1e1b68e",
+        "scripts/training_protocols.py": "282554330a79fe17d14ca60fe5975fa53c09d121817ccfe447fb59c64625039b",
+        "vision/recordings.py": "d887c508fa7ff593d75f084a9d5485409fc16efc699340011329a92dca4f44a4",
+        "vision/dataset.py": "df43f73747835f5bf37750fc20a9cc03c05cebcbe49a1d66c16b1bb5d620b1e5",
+        "vision/backbone.py": "2322b0e3f165edce4003ef88dac3f9480b412ee099e87f8a7c57fa4d6ed231d2",
+        "vision/models.py": "cb32086eb7b7e680240592c052cae45529264b728ff9217a578ec5e170f9b375"
+      }
+    }
+  }
 }
